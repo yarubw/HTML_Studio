@@ -1,0 +1,3184 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simple HTML Playground</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      background: #1f2937;
+      color: #fff;
+      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .topbar button,
+    .topbar label,
+    .topbar select {
+      background: #374151;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .topbar select {
+      outline: none;
+      min-width: 180px;
+    }
+
+    #runBtn {
+      background: #2563eb;
+    }
+
+    #runBtn:hover {
+      background: #1d4ed8;
+    }
+
+    #selectModeBtn.active {
+      background: #059669;
+    }
+
+    .topbar button:hover,
+    .topbar label:hover,
+    .topbar select:hover {
+      background: #4b5563;
+    }
+
+    .topbar input[type="file"] {
+      display: none;
+    }
+
+    #imageUploadLabel {
+      background: #0ea5e9;
+    }
+
+    .spacer { flex: 1; }
+
+    .container {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .pane {
+      width: 50%;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      border-inline-end: 1px solid #d1d5db;
+      background: #fff;
+    }
+
+    .pane-header {
+      padding: 10px 12px;
+      background: #e5e7eb;
+      font-weight: bold;
+      border-bottom: 1px solid #d1d5db;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .editor-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      background: #ffffff;
+      overflow: hidden;
+      direction: ltr;
+    }
+
+    pre[class*="language-"],
+    .editor-textarea {
+      margin: 0 !important;
+      font-family: 'Consolas', 'Monaco', 'Menlo', monospace !important;
+      font-size: 13px !important;
+      line-height: 1.5 !important;
+      font-weight: 400 !important;
+      font-style: normal !important;
+      letter-spacing: normal !important;
+      tab-size: 2;
+      padding: 14px !important;
+      direction: ltr !important;
+      text-align: left !important;
+      unicode-bidi: plaintext;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      box-sizing: border-box !important;
+      overflow: auto;
+      scrollbar-gutter: stable;
+    }
+
+    pre[class*="language-"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white !important;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Prism wraps content in <code>; reset so it matches the textarea box model */
+    pre[class*="language-"] code[class*="language-"] {
+      display: block;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+      font-family: inherit !important;
+      font-size: inherit !important;
+      line-height: inherit !important;
+      font-weight: inherit !important;
+      font-style: inherit !important;
+      letter-spacing: inherit !important;
+      white-space: inherit !important;
+      word-wrap: inherit !important;
+      overflow-wrap: inherit !important;
+      tab-size: inherit !important;
+    }
+
+    /* Token colors only — same metrics as plain text so overlay lines up with textarea */
+    pre[class*="language-"] .token {
+      font-family: inherit !important;
+      font-size: inherit !important;
+      line-height: inherit !important;
+      font-weight: inherit !important;
+      font-style: inherit !important;
+      letter-spacing: inherit !important;
+    }
+
+    .editor-textarea {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      resize: none;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: transparent;
+      caret-color: #000;
+      z-index: 2;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .editor-textarea::selection {
+      background: rgba(37, 99, 235, 0.2);
+    }
+
+    .preview-wrap {
+      flex: 1;
+      min-height: 0;
+      background: #f0f0f0;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .preview-layout {
+      height: 100%;
+      display: flex;
+      min-height: 0;
+    }
+
+    .preview-canvas {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      padding: 20px;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      background: #f0f0f0;
+    }
+
+    .preview-frame-host {
+      width: 100%;
+      height: 100%;
+      min-height: 300px;
+      display: flex;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+
+    .mobile-frame {
+      width: 375px;
+      height: 667px;
+      border: 12px solid #111;
+      border-radius: 30px;
+      background: #fff;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .style-panel {
+      width: 320px;
+      min-width: 320px;
+      background: #ffffff;
+      border-inline-start: 1px solid #d1d5db;
+      display: none;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .style-panel.show {
+      display: flex;
+    }
+
+    .style-panel-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f8fafc;
+    }
+
+    .style-panel-title {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .style-panel-subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      word-break: break-word;
+      direction: ltr;
+      text-align: left;
+    }
+
+    .style-panel-body {
+      flex: 1;
+      overflow: auto;
+      padding: 12px;
+    }
+
+    .css-group {
+      margin-bottom: 14px;
+      padding: 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+
+    .css-group-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .field label {
+      font-size: 12px;
+      color: #374151;
+      font-weight: 600;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      background: #fff;
+      color: #111827;
+    }
+
+    #generatedCssBox {
+      direction: ltr;
+      text-align: left;
+      background: #111827;
+      color: #f9fafb;
+      padding: 12px;
+      border-radius: 8px;
+      overflow: auto;
+      min-height: 150px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .style-panel-footer {
+      padding: 12px;
+      border-top: 1px solid #e5e7eb;
+      background: #fafafa;
+      display: flex;
+      gap: 8px;
+    }
+
+    .style-panel-footer button {
+      flex: 1;
+      border: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    #clearStylesBtn {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    #closeStylePanelBtn {
+      background: #374151;
+      color: #fff;
+    }
+
+    .status {
+      padding: 6px 12px;
+      font-size: 12px;
+      background: #f9fafb;
+      border-top: 1px solid #d1d5db;
+      color: #6b7280;
+    }
+
+    .fullscreen-preview .pane-editor { display: none; }
+    .fullscreen-preview .pane-preview { width: 100%; }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-box {
+      width: min(700px, 95vw);
+      max-height: 85vh;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      background: #1f2937;
+      color: #fff;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+    }
+
+    .modal-header button {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .modal-body pre,
+    #snippetCode {
+      margin: 0;
+      background: #f3f4f6;
+      padding: 14px;
+      border-radius: 8px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      direction: ltr !important;
+      text-align: left !important;
+      unicode-bidi: plaintext;
+    }
+
+    .modal-footer {
+      padding: 12px 16px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      background: #fafafa;
+    }
+
+    .modal-footer button {
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .mobile-features-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .mobile-feature-section {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .mobile-feature-section-header {
+      padding: 10px 12px;
+      font-weight: 700;
+      font-size: 13px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .mobile-feature-cards {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+
+    .mobile-feature-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 10px;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mobile-feature-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .mobile-feature-desc {
+      margin: 0;
+      font-size: 12px;
+      color: #4b5563;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .insert-mobile-snippet-btn {
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      padding: 8px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .insert-mobile-snippet-btn:hover {
+      background: #1d4ed8;
+    }
+
+    #copySnippetBtn {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    #insertSnippetBtn {
+      background: #10b981;
+      color: #fff;
+    }
+
+    .footer {
+      background: #111827;
+      color: #fff;
+      text-align: center;
+      padding: 10px 16px;
+      font-size: 14px;
+      border-top: 1px solid #374151;
+    }
+
+    @media (max-width: 1100px) {
+      .style-panel {
+        width: 280px;
+        min-width: 280px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .container { flex-direction: column; }
+      .pane { width: 100%; height: 50%; }
+
+      .preview-layout {
+        flex-direction: column;
+      }
+
+      .style-panel {
+        width: 100%;
+        min-width: 100%;
+        height: 320px;
+        border-inline-start: none;
+        border-top: 1px solid #d1d5db;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button id="runBtn">Run</button>
+    <button id="formatBtn">Format Code</button>
+    <button id="fullscreenBtn">Full Screen View</button>
+    <button id="mobileBtn">Mobile View</button>
+    <button id="selectModeBtn">Select Element</button>
+    <button id="saveBtn">Save Project</button>
+    <select id="saveFormatSelector" title="Export format">
+      <option value="json">JSON</option>
+      <option value="files">All Files</option>
+    </select>
+    <label for="loadFile" id="loadLabel">Load Project</label>
+    <input type="file" id="loadFile" accept=".html,.txt,.css,.js,.json">
+    <label for="imageUploadInput" id="imageUploadLabel">Upload Media (Image/Video/Audio)</label>
+    <input type="file" id="imageUploadInput" accept="image/*,video/*,audio/*" multiple>
+    <select id="fileSelector"></select>
+    <button id="newFileBtn">Create New File</button>
+    <button id="deleteFileBtn">Delete File</button>
+
+    <select id="tagSelector">
+      <option value="">HTML Tags</option>
+      <option value="h1">Heading 1</option>
+      <option value="h2">Heading 2</option>
+      <option value="h3">Heading 3</option>
+      <option value="h4">Heading 4</option>
+      <option value="h5">Heading 5</option>
+      <option value="h6">Heading 6</option>
+      <option value="p">Paragraph</option>
+      <option value="img">Image</option>
+      <option value="audio">Audio</option>
+      <option value="video">Video</option>
+      <option value="button">Button</option>
+      <option value="a">Link</option>
+      <option value="ol">Ordered List</option>
+      <option value="ul">Unordered List</option>
+      <option value="textbox">Text Box</option>
+      <option value="label">Label</option>
+    </select>
+
+    <button id="mobileFeaturesBtn">Mobile Features</button>
+    <button id="langBtn">العربية</button>
+    <div class="spacer"></div>
+    <span id="titleText">Simple HTML Playground</span>
+  </div>
+
+  <div class="container" id="container">
+    <div class="pane pane-editor">
+      <div class="pane-header" id="htmlTabTitle">HTML Editor</div>
+      <div class="editor-wrap" id="editorWrap">
+        <pre id="highlightedPre" class="language-html"><code id="highlightedCode" class="language-html"></code></pre>
+        <textarea id="editor" class="editor-textarea" spellcheck="false" autocomplete="off"></textarea>
+      </div>
+      <div class="status" id="editorStatus">Line 1, Column 1</div>
+    </div>
+
+    <div class="pane pane-preview">
+      <div class="pane-header" id="viewTabTitle">Preview</div>
+      <div class="preview-wrap">
+        <div class="preview-layout">
+          <div class="preview-canvas" id="previewCanvas">
+            <div class="preview-frame-host" id="previewWrap">
+              <iframe id="previewFrame" allow="camera *; microphone *; geolocation *"></iframe>
+            </div>
+          </div>
+
+          <div class="style-panel" id="stylePanel">
+            <div class="style-panel-header">
+              <div class="style-panel-title" id="stylePanelTitle">Element Styles</div>
+              <div class="style-panel-subtitle" id="selectedElementInfo">No element selected</div>
+            </div>
+
+            <div class="style-panel-body">
+              <div class="css-group">
+                <div class="css-group-title" id="groupTextTitle">Text</div>
+
+                <div class="field">
+                  <label for="cssColor" id="labelColor">Text Color</label>
+                  <input type="color" id="cssColor">
+                </div>
+
+                <div class="field">
+                  <label for="cssFontSize" id="labelFontSize">Font Size</label>
+                  <input type="text" id="cssFontSize" placeholder="e.g. 24px">
+                </div>
+
+                <div class="field">
+                  <label for="cssFontWeight" id="labelFontWeight">Font Weight</label>
+                  <select id="cssFontWeight">
+                    <option value="">Default</option>
+                    <option value="normal">normal</option>
+                    <option value="bold">bold</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                    <option value="300">300</option>
+                    <option value="400">400</option>
+                    <option value="500">500</option>
+                    <option value="600">600</option>
+                    <option value="700">700</option>
+                    <option value="800">800</option>
+                    <option value="900">900</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="cssTextAlign" id="labelTextAlign">Text Align</label>
+                  <select id="cssTextAlign">
+                    <option value="">Default</option>
+                    <option value="left">left</option>
+                    <option value="center">center</option>
+                    <option value="right">right</option>
+                    <option value="justify">justify</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="css-group">
+                <div class="css-group-title" id="groupBoxTitle">Box</div>
+
+                <div class="field">
+                  <label for="cssBackgroundColor" id="labelBackground">Background Color</label>
+                  <input type="color" id="cssBackgroundColor">
+                </div>
+
+                <div class="field">
+                  <label for="cssWidth" id="labelWidth">Width</label>
+                  <input type="text" id="cssWidth" placeholder="e.g. 300px or 100%">
+                </div>
+
+                <div class="field">
+                  <label for="cssHeight" id="labelHeight">Height</label>
+                  <input type="text" id="cssHeight" placeholder="e.g. 150px">
+                </div>
+
+                <div class="field">
+                  <label for="cssDisplay" id="labelDisplay">Display</label>
+                  <select id="cssDisplay">
+                    <option value="">Default</option>
+                    <option value="block">block</option>
+                    <option value="inline">inline</option>
+                    <option value="inline-block">inline-block</option>
+                    <option value="flex">flex</option>
+                    <option value="grid">grid</option>
+                    <option value="none">none</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="css-group">
+                <div class="css-group-title" id="groupSpacingTitle">Spacing</div>
+
+                <div class="field">
+                  <label for="cssMargin" id="labelMargin">Margin</label>
+                  <input type="text" id="cssMargin" placeholder="e.g. 10px">
+                </div>
+
+                <div class="field">
+                  <label for="cssPadding" id="labelPadding">Padding</label>
+                  <input type="text" id="cssPadding" placeholder="e.g. 12px">
+                </div>
+              </div>
+
+              <div class="css-group">
+                <div class="css-group-title" id="groupBorderTitle">Border</div>
+
+                <div class="field">
+                  <label for="cssBorder" id="labelBorder">Border</label>
+                  <input type="text" id="cssBorder" placeholder="e.g. 1px solid #000">
+                </div>
+
+                <div class="field">
+                  <label for="cssBorderRadius" id="labelBorderRadius">Border Radius</label>
+                  <input type="text" id="cssBorderRadius" placeholder="e.g. 8px">
+                </div>
+              </div>
+
+              <div class="css-group">
+                <div class="css-group-title" id="groupGeneratedCssTitle">Generated CSS</div>
+                <div class="field">
+                  <label id="labelGeneratedCss">CSS Code</label>
+                  <pre id="generatedCssBox">/* CSS will appear here */</pre>
+                </div>
+              </div>
+            </div>
+
+            <div class="style-panel-footer">
+              <button id="clearStylesBtn">Clear Styles</button>
+              <button id="closeStylePanelBtn">Close Panel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="status" id="previewStatus">Ready</div>
+    </div>
+  </div>
+
+  <div class="modal" id="mobileFeaturesModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="mobileFeaturesTitle">Mobile Features & Device Integration</span>
+        <button id="closeMobileFeaturesBtn">Close</button>
+      </div>
+      <div class="modal-body">
+        <p id="mobileFeaturesIntro">Choose a feature, then click Insert Code to add a ready-to-run example into the editor.</p>
+        <div id="mobileFeaturesGrid" class="mobile-features-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="snippetModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="modalTitle">HTML Code</span>
+        <button id="closeModalBtn">Close</button>
+      </div>
+      <div class="modal-body">
+        <pre id="snippetCode"></pre>
+      </div>
+      <div class="modal-footer">
+        <button id="copySnippetBtn">Copy Code</button>
+        <button id="insertSnippetBtn">Insert Into Editor</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer" id="footerText">
+    برمجة وتصميم م. يعرب وحشة - مدرسة ابن تيمية الثانوية الشاملة للبنين
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+  <script>
+    const editor = document.getElementById('editor');
+    const highlightedCode = document.getElementById('highlightedCode');
+    const highlightedPre = document.getElementById('highlightedPre');
+    const container = document.getElementById('container');
+    const previewWrap = document.getElementById('previewWrap');
+    const runBtn = document.getElementById('runBtn');
+    const formatBtn = document.getElementById('formatBtn');
+    const tagSelector = document.getElementById('tagSelector');
+    const saveFormatSelector = document.getElementById('saveFormatSelector');
+    const snippetModal = document.getElementById('snippetModal');
+    const snippetCode = document.getElementById('snippetCode');
+    const modalTitle = document.getElementById('modalTitle');
+    const copySnippetBtn = document.getElementById('copySnippetBtn');
+    const insertSnippetBtn = document.getElementById('insertSnippetBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const mobileFeaturesBtn = document.getElementById('mobileFeaturesBtn');
+    const mobileFeaturesModal = document.getElementById('mobileFeaturesModal');
+    const closeMobileFeaturesBtn = document.getElementById('closeMobileFeaturesBtn');
+    const mobileFeaturesGrid = document.getElementById('mobileFeaturesGrid');
+    const fileSelector = document.getElementById('fileSelector');
+    const newFileBtn = document.getElementById('newFileBtn');
+    const deleteFileBtn = document.getElementById('deleteFileBtn');
+    const selectModeBtn = document.getElementById('selectModeBtn');
+    const imageUploadInput = document.getElementById('imageUploadInput');
+    const stylePanel = document.getElementById('stylePanel');
+    const selectedElementInfo = document.getElementById('selectedElementInfo');
+    const clearStylesBtn = document.getElementById('clearStylesBtn');
+    const closeStylePanelBtn = document.getElementById('closeStylePanelBtn');
+    const generatedCssBox = document.getElementById('generatedCssBox');
+
+    const cssControls = {
+      color: document.getElementById('cssColor'),
+      backgroundColor: document.getElementById('cssBackgroundColor'),
+      fontSize: document.getElementById('cssFontSize'),
+      fontWeight: document.getElementById('cssFontWeight'),
+      textAlign: document.getElementById('cssTextAlign'),
+      width: document.getElementById('cssWidth'),
+      height: document.getElementById('cssHeight'),
+      display: document.getElementById('cssDisplay'),
+      margin: document.getElementById('cssMargin'),
+      padding: document.getElementById('cssPadding'),
+      border: document.getElementById('cssBorder'),
+      borderRadius: document.getElementById('cssBorderRadius')
+    };
+
+    let previewFrameRef = document.getElementById('previewFrame');
+    let currentSnippet = '';
+    let currentSnippetKey = '';
+    let isArabic = true;
+
+    let historyStack = [];
+    let redoStack = [];
+    let isRestoringHistory = false;
+    let lastSavedValue = '';
+    const HISTORY_LIMIT = 200;
+
+    let selectMode = false;
+    let selectedPreviewElement = null;
+    let selectedPrevOutline = '';
+    let selectedPrevOutlineOffset = '';
+
+    const defaultCode = `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    h1 { 
+        color: #2563eb;
+       }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Hello World! 👋</h1>
+    <p>Edit this code and click <b>Run</b>.</p>
+    <button>Sample Button</button>
+  </div>
+</body>
+</html>`;
+
+    const mobileFeaturesLibraryCode = `/* Library loaded from external file at runtime. */`;
+
+    let files = {
+      'index.html': defaultCode,
+      'styles.css': '/* styles */',
+      'app.js': 'console.log("app loaded");',
+      'mobile-features-lib.js': mobileFeaturesLibraryCode
+    };
+    let currentFileName = 'index.html';
+    let isViewingAssetFile = false;
+
+    function getAssetKind(name) {
+      const lower = String(name || '').toLowerCase();
+      if (/\.(png|jpg|jpeg|gif|webp|svg)$/.test(lower)) return 'image';
+      if (/\.(mp4|webm|ogg|mov|m4v)$/.test(lower)) return 'video';
+      if (/\.(mp3|wav|ogg|m4a|aac|flac|webm)$/.test(lower)) return 'audio';
+      return '';
+    }
+
+    function isMediaFile(name) {
+      return getAssetKind(name) !== '';
+    }
+
+    async function loadExternalMobileLibrary() {
+      try {
+        const response = await fetch('./mobile-features-lib.js', { cache: 'no-store' });
+        if (!response.ok) return;
+        const code = await response.text();
+        if (code && code.trim()) {
+          files['mobile-features-lib.js'] = code;
+          if (currentFileName === 'mobile-features-lib.js') {
+            editor.value = code;
+            lastSavedValue = code;
+            syncHighlight();
+            updateCursorStatus();
+          }
+        }
+      } catch (error) {}
+    }
+
+    const htmlSnippets = {
+      h1: `<h1>Main Heading</h1>`,
+      h2: `<h2>Sub Heading</h2>`,
+      h3: `<h3>Heading 3</h3>`,
+      h4: `<h4>Heading 4</h4>`,
+      h5: `<h5>Heading 5</h5>`,
+      h6: `<h6>Heading 6</h6>`,
+      p: `<p>This is a paragraph.</p>`,
+      img: `<img src="image.jpg" alt="My Image" width="300">`,
+      audio: `<audio controls>
+  <source src="audio.mp3" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>`,
+      video: `<video controls width="400">
+  <source src="video.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>`,
+      button: `<button onclick="alert('Hello!')">Click Me</button>`,
+      a: `<a href="https://example.com" target="_blank">Visit Website</a>`,
+      ol: `<ol>
+  <li>First item</li>
+  <li>Second item</li>
+  <li>Third item</li>
+</ol>`,
+      ul: `<ul>
+  <li>Item one</li>
+  <li>Item two</li>
+  <li>Item three</li>
+</ul>`,
+      textbox: `<input type="text" placeholder="Enter text here">`,
+      label: `<label for="name">Name:</label>
+<input type="text" id="name">`
+    };
+
+    const titleMapEn = {
+      h1: 'Heading 1',
+      h2: 'Heading 2',
+      h3: 'Heading 3',
+      h4: 'Heading 4',
+      h5: 'Heading 5',
+      h6: 'Heading 6',
+      p: 'Paragraph',
+      img: 'Image',
+      audio: 'Audio',
+      video: 'Video',
+      button: 'Button',
+      a: 'Link',
+      ol: 'Ordered List',
+      ul: 'Unordered List',
+      textbox: 'Text Box',
+      label: 'Label'
+    };
+
+    const titleMapAr = {
+      h1: 'عنوان 1',
+      h2: 'عنوان 2',
+      h3: 'عنوان 3',
+      h4: 'عنوان 4',
+      h5: 'عنوان 5',
+      h6: 'عنوان 6',
+      p: 'فقرة',
+      img: 'صورة',
+      audio: 'صوت',
+      video: 'فيديو',
+      button: 'زر',
+      a: 'رابط',
+      ol: 'قائمة مرتبة',
+      ul: 'قائمة غير مرتبة',
+      textbox: 'مربع نص',
+      label: 'تسمية'
+    };
+
+    const mobileSnippetSections = [
+      {
+        id: 'camera',
+        titleEn: '1) Camera',
+        titleAr: '1) الكاميرا',
+        items: [
+          {
+            id: 'camera-full',
+            titleEn: 'Camera: Start, Stop, Capture + Fallback',
+            titleAr: 'الكاميرا: تشغيل، إيقاف، التقاط + بديل',
+            descEn: 'Uses getUserMedia, shows video stream, captures image, and adds mobile file-input fallback.',
+            descAr: 'يستخدم getUserMedia ويعرض البث ويلتقط صورة مع بديل رفع/التقاط للجوال.',
+            code: `<!-- Camera example: start, stop, capture image, and mobile fallback -->
+<section style="font-family: Arial, sans-serif; max-width: 420px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px;">
+  <h2>Camera Example</h2>
+
+  <video id="cameraVideo" autoplay playsinline style="width: 100%; border-radius: 8px; background: #000;"></video>
+
+  <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+    <button id="startCameraBtn">Start Camera</button>
+    <button id="stopCameraBtn">Stop Camera</button>
+    <button id="captureBtn">Capture Image</button>
+  </div>
+
+  <p style="margin: 10px 0 6px;"><b>Captured Output:</b></p>
+  <canvas id="captureCanvas" width="320" height="240" style="display: none;"></canvas>
+  <img id="capturedImage" alt="Captured image will appear here" style="max-width: 100%; border: 1px solid #ddd; border-radius: 8px;">
+
+  <hr style="margin: 14px 0;">
+
+  <!-- Mobile-friendly fallback -->
+  <label for="cameraFallbackInput"><b>Fallback (mobile file/camera input):</b></label>
+  <input id="cameraFallbackInput" type="file" accept="image/*" capture="environment">
+  <p id="cameraMessage"></p>
+</section>
+
+<script>
+  const cameraFeature = {
+    stream: null,
+    videoEl: document.getElementById('cameraVideo'),
+    canvasEl: document.getElementById('captureCanvas'),
+    imageEl: document.getElementById('capturedImage'),
+    messageEl: document.getElementById('cameraMessage'),
+    fallbackInputEl: document.getElementById('cameraFallbackInput')
+  };
+
+  function setCameraMessage(text = '') {
+    cameraFeature.messageEl.textContent = text;
+  }
+
+  function getCameraSupportMessage() {
+    if (!window.isSecureContext) {
+      return 'Live camera preview (getUserMedia) needs HTTPS or localhost. Fallback file input (capture=environment) can still work without HTTPS on many phones.';
+    }
+    return 'Camera API is not supported in this browser. Use fallback input below.';
+  }
+
+  async function startCamera(options = { facingMode: 'environment' }) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setCameraMessage(getCameraSupportMessage() + ' Opening fallback camera/file picker...');
+      if (cameraFeature.fallbackInputEl) cameraFeature.fallbackInputEl.click();
+      return null;
+    }
+    try {
+      cameraFeature.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: options.facingMode || 'environment' }, audio: false });
+      cameraFeature.videoEl.srcObject = cameraFeature.stream;
+      setCameraMessage('Camera started.');
+      return cameraFeature.stream;
+    } catch (err) {
+      setCameraMessage('Could not start camera: ' + err.message);
+      return null;
+    }
+  }
+
+  function stopCamera() {
+    if (!cameraFeature.stream) {
+      setCameraMessage('No active camera stream.');
+      return;
+    }
+    cameraFeature.stream.getTracks().forEach(track => track.stop());
+    cameraFeature.stream = null;
+    cameraFeature.videoEl.srcObject = null;
+    setCameraMessage('Camera stopped.');
+  }
+
+  function captureImage(imageType = 'image/png') {
+    if (!cameraFeature.videoEl.videoWidth || !cameraFeature.videoEl.videoHeight) {
+      setCameraMessage('Live preview is not ready. Opening fallback camera/file picker...');
+      if (cameraFeature.fallbackInputEl) cameraFeature.fallbackInputEl.click();
+      return '';
+    }
+    cameraFeature.canvasEl.width = cameraFeature.videoEl.videoWidth;
+    cameraFeature.canvasEl.height = cameraFeature.videoEl.videoHeight;
+    const ctx = cameraFeature.canvasEl.getContext('2d');
+    ctx.drawImage(cameraFeature.videoEl, 0, 0, cameraFeature.canvasEl.width, cameraFeature.canvasEl.height);
+    const dataUrl = cameraFeature.canvasEl.toDataURL(imageType);
+    cameraFeature.imageEl.src = dataUrl;
+    setCameraMessage('Image captured from video stream.');
+    return dataUrl;
+  }
+
+  function loadFallbackImage(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      cameraFeature.imageEl.src = reader.result;
+      setCameraMessage('Image loaded from fallback input.');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  document.getElementById('startCameraBtn').addEventListener('click', () => startCamera({ facingMode: 'environment' }));
+  document.getElementById('stopCameraBtn').addEventListener('click', stopCamera);
+  document.getElementById('captureBtn').addEventListener('click', () => captureImage('image/png'));
+  document.getElementById('cameraFallbackInput').addEventListener('change', (event) => loadFallbackImage(event.target.files[0]));
+<\/script>`
+          }
+        ]
+      },
+      {
+        id: 'microphone',
+        titleEn: '2) Microphone',
+        titleAr: '2) الميكروفون',
+        items: [
+          {
+            id: 'mic-recorder',
+            titleEn: 'Microphone Recorder',
+            titleAr: 'تسجيل الصوت بالميكروفون',
+            descEn: 'Requests mic permission, records with MediaRecorder, then plays and downloads audio.',
+            descAr: 'يطلب صلاحية الميكروفون ويسجل عبر MediaRecorder ثم يشغّل ويحمل الصوت.',
+            code: `<!-- Microphone recording example -->
+<section style="font-family: Arial, sans-serif; max-width: 420px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px;">
+  <h2>Microphone Recorder</h2>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <button id="startRecordBtn">Start Recording</button>
+    <button id="stopRecordBtn">Stop Recording</button>
+  </div>
+  <p id="micStatus">Status: idle</p>
+  <audio id="recordedAudio" controls style="width: 100%;"></audio>
+  <a id="downloadAudioLink" download="recording.webm" style="display: inline-block; margin-top: 10px;">Download Audio</a>
+</section>
+
+<script>
+  const micFeature = {
+    mediaRecorder: null,
+    stream: null,
+    audioChunks: [],
+    statusEl: document.getElementById('micStatus'),
+    audioEl: document.getElementById('recordedAudio'),
+    downloadEl: document.getElementById('downloadAudioLink')
+  };
+
+  function setMicStatus(text = '') {
+    micFeature.statusEl.textContent = text;
+  }
+
+  async function startRecording(options = { mimeType: 'audio/webm' }) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMicStatus('Microphone API not supported.');
+      return false;
+    }
+    try {
+      micFeature.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micFeature.mediaRecorder = new MediaRecorder(micFeature.stream);
+      micFeature.audioChunks = [];
+
+      micFeature.mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) micFeature.audioChunks.push(event.data);
+      };
+
+      micFeature.mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(micFeature.audioChunks, { type: options.mimeType || 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        micFeature.audioEl.src = audioUrl;
+        micFeature.downloadEl.href = audioUrl;
+        setMicStatus('Recording ready. You can play or download it.');
+      };
+
+      micFeature.mediaRecorder.start();
+      setMicStatus('Recording...');
+      return true;
+    } catch (err) {
+      setMicStatus('Microphone permission failed: ' + err.message);
+      return false;
+    }
+  }
+
+  function stopRecording() {
+    if (!micFeature.mediaRecorder || micFeature.mediaRecorder.state !== 'recording') {
+      setMicStatus('Recorder is not running.');
+      return;
+    }
+    micFeature.mediaRecorder.stop();
+    if (micFeature.stream) micFeature.stream.getTracks().forEach(track => track.stop());
+  }
+
+  document.getElementById('startRecordBtn').addEventListener('click', () => startRecording({ mimeType: 'audio/webm' }));
+  document.getElementById('stopRecordBtn').addEventListener('click', stopRecording);
+<\/script>`
+          }
+        ]
+      },
+      {
+        id: 'location',
+        titleEn: '3) Location (GPS)',
+        titleAr: '3) الموقع (GPS)',
+        items: [
+          {
+            id: 'gps-watch',
+            titleEn: 'Get and Watch Location',
+            titleAr: 'جلب الموقع ومراقبته',
+            descEn: 'Shows latitude, longitude, and accuracy with clear error handling.',
+            descAr: 'يعرض خط العرض والطول والدقة مع معالجة أخطاء واضحة.',
+            code: `<!-- Geolocation example: current location + watch + stop -->
+<section style="font-family: Arial, sans-serif; max-width: 420px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px;">
+  <h2>Location (GPS)</h2>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <button id="getLocationBtn">Get Current Location</button>
+    <button id="watchLocationBtn">Watch Location</button>
+    <button id="stopWatchBtn">Stop Watching</button>
+  </div>
+  <pre id="gpsOutput" style="background: #f3f4f6; padding: 10px; border-radius: 8px;">No location yet.</pre>
+</section>
+
+<script>
+  const gpsFeature = {
+    watchId: null,
+    outputEl: document.getElementById('gpsOutput')
+  };
+
+  function setGpsOutput(text = '') {
+    gpsFeature.outputEl.textContent = text;
+  }
+
+  function formatPosition(position) {
+    return [
+      'Latitude: ' + position.coords.latitude,
+      'Longitude: ' + position.coords.longitude,
+      'Accuracy (meters): ' + position.coords.accuracy
+    ].join('\\n');
+  }
+
+  function handleGeoError(error) {
+    const messages = { 1: 'Permission denied by user.', 2: 'Position unavailable.', 3: 'Location request timed out.' };
+    setGpsOutput('Location error: ' + (messages[error.code] || error.message));
+  }
+
+  function getCurrentLocation(options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }) {
+    if (!navigator.geolocation) {
+      setGpsOutput('Geolocation is not supported in this browser.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition((position) => setGpsOutput(formatPosition(position)), handleGeoError, options);
+  }
+
+  function watchLocation(options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }) {
+    if (!navigator.geolocation) {
+      setGpsOutput('Geolocation is not supported in this browser.');
+      return;
+    }
+    if (gpsFeature.watchId !== null) {
+      setGpsOutput('Already watching location.');
+      return;
+    }
+    gpsFeature.watchId = navigator.geolocation.watchPosition((position) => setGpsOutput(formatPosition(position)), handleGeoError, options);
+    setGpsOutput('Watching location... move your device to see updates.');
+  }
+
+  function stopWatchingLocation() {
+    if (gpsFeature.watchId === null) {
+      setGpsOutput('No active location watch.');
+      return;
+    }
+    navigator.geolocation.clearWatch(gpsFeature.watchId);
+    gpsFeature.watchId = null;
+    setGpsOutput('Stopped watching location.');
+  }
+
+  document.getElementById('getLocationBtn').addEventListener('click', () => getCurrentLocation());
+  document.getElementById('watchLocationBtn').addEventListener('click', () => watchLocation());
+  document.getElementById('stopWatchBtn').addEventListener('click', stopWatchingLocation);
+<\/script>`
+          }
+        ]
+      },
+      {
+        id: 'qr',
+        titleEn: '4) QR Code From Image',
+        titleAr: '4) قراءة QR من صورة',
+        items: [
+          {
+            id: 'qr-jsqr',
+            titleEn: 'Scan QR from Uploaded/Captured Image',
+            titleAr: 'قراءة QR من صورة مرفوعة/ملتقطة',
+            descEn: 'Loads image to canvas, uses jsQR, then displays decoded result.',
+            descAr: 'يرسم الصورة على Canvas ثم يقرأ QR باستخدام jsQR ويعرض النتيجة.',
+            code: `<!-- QR reader from image using jsQR -->
+<section style="font-family: Arial, sans-serif; max-width: 420px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px;">
+  <h2>QR From Image</h2>
+  <input id="qrImageInput" type="file" accept="image/*" capture="environment">
+  <canvas id="qrCanvas" style="display: none;"></canvas>
+  <p id="qrResult">Upload or capture an image with a QR code.</p>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"><\\/script>
+<script>
+  const qrImageFeature = {
+    inputEl: document.getElementById('qrImageInput'),
+    canvasEl: document.getElementById('qrCanvas'),
+    resultEl: document.getElementById('qrResult')
+  };
+
+  function setQrImageResult(text = '') {
+    qrImageFeature.resultEl.textContent = text;
+  }
+
+  function tryDecodeQrFromCanvas(canvasEl, invert = 'attemptBoth') {
+    const ctx = canvasEl.getContext('2d');
+    if (!ctx) return null;
+
+    const attempts = [
+      { scale: 1, grayscale: false, invert },
+      { scale: 1, grayscale: true, invert: 'attemptBoth' },
+      { scale: 0.6, grayscale: true, invert: 'attemptBoth' }
+    ];
+
+    for (const attempt of attempts) {
+      let workCanvas = canvasEl;
+      let workCtx = ctx;
+
+      if (attempt.scale !== 1) {
+        workCanvas = document.createElement('canvas');
+        workCanvas.width = Math.max(200, Math.floor(canvasEl.width * attempt.scale));
+        workCanvas.height = Math.max(200, Math.floor(canvasEl.height * attempt.scale));
+        workCtx = workCanvas.getContext('2d');
+        if (!workCtx) continue;
+        workCtx.drawImage(canvasEl, 0, 0, workCanvas.width, workCanvas.height);
+      }
+
+      let imageData = null;
+      try {
+        imageData = workCtx.getImageData(0, 0, workCanvas.width, workCanvas.height);
+      } catch (error) {
+        continue;
+      }
+
+      if (attempt.grayscale) {
+        for (let i = 0; i < imageData.data.length; i += 4) {
+          const gray = Math.round(
+            imageData.data[i] * 0.299 +
+            imageData.data[i + 1] * 0.587 +
+            imageData.data[i + 2] * 0.114
+          );
+          imageData.data[i] = gray;
+          imageData.data[i + 1] = gray;
+          imageData.data[i + 2] = gray;
+        }
+      }
+
+      const result = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: attempt.invert || 'attemptBoth'
+      });
+      if (result) return result;
+    }
+
+    return null;
+  }
+
+  function decodeQrFromImageFile(file, options = { invert: 'dontInvert' }) {
+    if (!file) return;
+    if (typeof jsQR !== 'function') {
+      setQrImageResult('jsQR library did not load. Check internet connection.');
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      setQrImageResult('Decoding QR...');
+      qrImageFeature.canvasEl.width = img.width;
+      qrImageFeature.canvasEl.height = img.height;
+      const ctx = qrImageFeature.canvasEl.getContext('2d');
+      if (!ctx) {
+        setQrImageResult('Canvas context is not available.');
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+
+      try {
+        const qrCode = tryDecodeQrFromCanvas(qrImageFeature.canvasEl, options.invert || 'attemptBoth');
+        setQrImageResult(qrCode ? 'QR Result: ' + qrCode.data : 'No QR code found in this image. Try a clearer image or crop around the QR.');
+      } catch (error) {
+        setQrImageResult('Failed to decode image: ' + error.message);
+      }
+    };
+    img.onerror = () => setQrImageResult('Failed to load image.');
+    img.src = URL.createObjectURL(file);
+  }
+
+  qrImageFeature.inputEl.addEventListener('change', () => {
+    decodeQrFromImageFile(qrImageFeature.inputEl.files[0], { invert: 'attemptBoth' });
+  });
+<\/script>`
+          },
+          {
+            id: 'camera-capture-qr',
+            titleEn: 'Start Camera + Capture + Decode QR',
+            titleAr: 'تشغيل الكاميرا + التقاط + قراءة QR',
+            descEn: 'Starts camera, captures one frame to canvas, and decodes QR with jsQR.',
+            descAr: 'يشغل الكاميرا ويلتقط إطاراً إلى Canvas ثم يقرأ QR عبر jsQR.',
+            code: `<!-- Camera -> Capture -> Decode QR -->
+<section style="font-family: Arial, sans-serif; max-width: 460px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px;">
+  <h2>Camera QR Decode</h2>
+  <video id="qrVideo" autoplay playsinline style="width: 100%; background: #000; border-radius: 8px;"></video>
+  <canvas id="qrCaptureCanvas" style="display: none;"></canvas>
+
+  <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+    <button id="startQrCameraBtn">Start Camera</button>
+    <button id="captureQrBtn">Capture & Decode QR</button>
+    <button id="stopQrCameraBtn">Stop Camera</button>
+  </div>
+
+  <p style="margin: 10px 0 6px;"><b>Fallback (capture/upload image):</b></p>
+  <input id="qrFallbackInput" type="file" accept="image/*" capture="environment">
+
+  <p id="qrCameraResult" style="margin-top: 10px;">Try Start Camera. If blocked, use fallback input above.</p>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"><\\/script>
+<script>
+  // Reusable helper students can call from another script tag.
+  // Example:
+  // const qr = scan_qr({ videoId: 'qrVideo', canvasId: 'qrCaptureCanvas', resultId: 'qrCameraResult' });
+  // qr.start({ facingMode: 'environment' });
+  // qr.capture({ invert: 'attemptBoth' });
+  // qr.stop();
+  function scan_qr(config = {}) {
+    const feature = {
+      stream: null,
+      videoEl: document.getElementById(config.videoId || 'qrVideo'),
+      canvasEl: document.getElementById(config.canvasId || 'qrCaptureCanvas'),
+      resultEl: document.getElementById(config.resultId || 'qrCameraResult'),
+      fallbackInputEl: document.getElementById(config.fallbackInputId || 'qrFallbackInput')
+    };
+
+    function setResult(text = '') {
+      if (feature.resultEl) feature.resultEl.textContent = text;
+    }
+
+    function tryDecodeQrFromCanvas(canvasEl, invert = 'attemptBoth') {
+      const ctx = canvasEl.getContext('2d');
+      if (!ctx) return null;
+
+      const attempts = [
+        { scale: 1, grayscale: false, invert },
+        { scale: 1, grayscale: true, invert: 'attemptBoth' },
+        { scale: 0.6, grayscale: true, invert: 'attemptBoth' }
+      ];
+
+      for (const attempt of attempts) {
+        let workCanvas = canvasEl;
+        let workCtx = ctx;
+
+        if (attempt.scale !== 1) {
+          workCanvas = document.createElement('canvas');
+          workCanvas.width = Math.max(200, Math.floor(canvasEl.width * attempt.scale));
+          workCanvas.height = Math.max(200, Math.floor(canvasEl.height * attempt.scale));
+          workCtx = workCanvas.getContext('2d');
+          if (!workCtx) continue;
+          workCtx.drawImage(canvasEl, 0, 0, workCanvas.width, workCanvas.height);
+        }
+
+        let imageData = null;
+        try {
+          imageData = workCtx.getImageData(0, 0, workCanvas.width, workCanvas.height);
+        } catch (error) {
+          continue;
+        }
+
+        if (attempt.grayscale) {
+          for (let i = 0; i < imageData.data.length; i += 4) {
+            const gray = Math.round(
+              imageData.data[i] * 0.299 +
+              imageData.data[i + 1] * 0.587 +
+              imageData.data[i + 2] * 0.114
+            );
+            imageData.data[i] = gray;
+            imageData.data[i + 1] = gray;
+            imageData.data[i + 2] = gray;
+          }
+        }
+
+        const result = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: attempt.invert || 'attemptBoth'
+        });
+        if (result) return result;
+      }
+
+      return null;
+    }
+
+    function getCameraSupportMessage() {
+      if (!window.isSecureContext) {
+        return 'Live camera preview (getUserMedia) needs HTTPS or localhost. Try fallback input capture or run on localhost/HTTPS.';
+      }
+      return 'Camera API is not supported in this browser.';
+    }
+
+    async function start(options = { facingMode: 'environment' }) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setResult(getCameraSupportMessage() + ' Opening fallback input...');
+        if (feature.fallbackInputEl) feature.fallbackInputEl.click();
+        return null;
+      }
+      try {
+        feature.stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: options.facingMode || 'environment' },
+          audio: false
+        });
+        feature.videoEl.srcObject = feature.stream;
+        setResult('Camera started. Point it to a QR code, then capture.');
+        return feature.stream;
+      } catch (err) {
+        setResult('Could not start camera: ' + err.message + '. Use HTTPS or localhost and allow permission.');
+        return null;
+      }
+    }
+
+    function capture(options = { invert: 'attemptBoth' }) {
+      if (typeof jsQR !== 'function') {
+        setResult('jsQR library did not load. Check internet connection and try again.');
+        return '';
+      }
+      if (!feature.videoEl.videoWidth || !feature.videoEl.videoHeight) {
+        setResult('Live preview is not ready. Opening fallback input...');
+        if (feature.fallbackInputEl) feature.fallbackInputEl.click();
+        return '';
+      }
+
+      feature.canvasEl.width = feature.videoEl.videoWidth;
+      feature.canvasEl.height = feature.videoEl.videoHeight;
+      const ctx = feature.canvasEl.getContext('2d');
+      if (!ctx) {
+        setResult('Canvas context is not available.');
+        return '';
+      }
+      setResult('Decoding QR...');
+      ctx.drawImage(feature.videoEl, 0, 0, feature.canvasEl.width, feature.canvasEl.height);
+
+      let qrCode = null;
+      try {
+        qrCode = tryDecodeQrFromCanvas(feature.canvasEl, options.invert || 'attemptBoth');
+      } catch (error) {
+        setResult('Failed to decode captured image: ' + error.message);
+        return '';
+      }
+
+      if (qrCode) {
+        setResult('QR Result: ' + qrCode.data);
+        return qrCode.data;
+      }
+        setResult('No QR found. Try better lighting, move closer, and keep QR centered.');
+      return '';
+    }
+
+    function decodeFromImageFile(file, options = { invert: 'attemptBoth' }) {
+      if (!file) return '';
+      if (typeof jsQR !== 'function') {
+        setResult('jsQR library did not load. Check internet connection and try again.');
+        return '';
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        setResult('Decoding QR...');
+        feature.canvasEl.width = img.width;
+        feature.canvasEl.height = img.height;
+        const ctx = feature.canvasEl.getContext('2d');
+        if (!ctx) {
+          setResult('Canvas context is not available.');
+          return;
+        }
+        ctx.drawImage(img, 0, 0, feature.canvasEl.width, feature.canvasEl.height);
+
+        let qrCode = null;
+        try {
+          qrCode = tryDecodeQrFromCanvas(feature.canvasEl, options.invert || 'attemptBoth');
+        } catch (error) {
+          setResult('Failed to decode selected image: ' + error.message);
+          return;
+        }
+
+        if (qrCode) {
+          setResult('QR Result: ' + qrCode.data);
+          return;
+        }
+        setResult('No QR found in selected image. Try a clearer image or crop around the QR.');
+      };
+      img.onerror = () => setResult('Failed to load selected image.');
+      img.src = URL.createObjectURL(file);
+      return '';
+    }
+
+    function stop() {
+      if (!feature.stream) {
+        setResult('No active camera stream.');
+        return;
+      }
+      feature.stream.getTracks().forEach(track => track.stop());
+      feature.stream = null;
+      feature.videoEl.srcObject = null;
+      setResult('Camera stopped.');
+    }
+
+    return { start, capture, decodeFromImageFile, stop };
+  }
+<\\/script>
+<script>
+  const qr = scan_qr({
+    videoId: 'qrVideo',
+    canvasId: 'qrCaptureCanvas',
+    resultId: 'qrCameraResult',
+    fallbackInputId: 'qrFallbackInput'
+  });
+  document.getElementById('startQrCameraBtn').addEventListener('click', () => qr.start({ facingMode: 'environment' }));
+  document.getElementById('captureQrBtn').addEventListener('click', () => qr.capture({ invert: 'attemptBoth' }));
+  document.getElementById('stopQrCameraBtn').addEventListener('click', qr.stop);
+  document.getElementById('qrFallbackInput').addEventListener('change', (event) => {
+    qr.decodeFromImageFile(event.target.files[0], { invert: 'attemptBoth' });
+  });
+<\/script>`
+          }
+        ]
+      },
+      {
+        id: 'intents',
+        titleEn: '5) Device Actions',
+        titleAr: '5) إجراءات الجهاز',
+        items: [
+          {
+            id: 'device-actions',
+            titleEn: 'Call, SMS, Email, Maps, WhatsApp + App Deep Link',
+            titleAr: 'اتصال ورسائل وبريد وخرائط وواتساب + فتح تطبيق',
+            descEn: 'Ready links for device actions with deep-link fallback and mobile limitations.',
+            descAr: 'روابط جاهزة لإجراءات الجهاز مع مثال فتح تطبيق وقيود منصات الجوال.',
+            code: `<!-- Device Actions / Intents -->
+<section style="font-family: Arial, sans-serif; max-width: 520px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px;">
+  <h2>Device Actions</h2>
+  <ul>
+    <li><a href="tel:+962799123456">Call</a></li>
+    <li><a href="sms:+962799123456">Send SMS</a></li>
+    <li><a href="mailto:test@example.com">Send Email</a></li>
+    <li><a href="https://maps.google.com?q=32.0853,36.0880" target="_blank" rel="noopener">Open Map</a></li>
+    <li><a href="https://wa.me/962799123456?text=Hello" target="_blank" rel="noopener">Open WhatsApp</a></li>
+  </ul>
+
+  <button id="openMyAppBtn">Open App (Advanced)</button>
+  <p id="intentInfo"></p>
+
+  <p><b>Limitations:</b></p>
+  <ul>
+    <li>Must be triggered by a user click/tap.</li>
+    <li>iOS does not support generic <code>intent://</code> links in normal browsers.</li>
+    <li>Use app deep links or universal links as fallback.</li>
+  </ul>
+</section>
+
+<script>
+  const intentInfo = document.getElementById('intentInfo');
+
+  function openAppWithFallback(appUrl = 'myapp://open', webFallbackUrl = 'https://example.com', delayMs = 2000) {
+    intentInfo.textContent = 'Trying to open app...';
+    window.location = appUrl;
+    setTimeout(() => {
+      window.location = webFallbackUrl;
+    }, delayMs);
+  }
+
+  document.getElementById('openMyAppBtn').addEventListener('click', () => {
+    openAppWithFallback('myapp://open', 'https://example.com', 2000);
+  });
+<\/script>`
+          }
+        ]
+      },
+      {
+        id: 'pwa',
+        titleEn: '6) PWA Support',
+        titleAr: '6) دعم PWA',
+        items: [
+          {
+            id: 'manifest',
+            titleEn: 'manifest.json Template',
+            titleAr: 'قالب manifest.json',
+            descEn: 'Basic app manifest with name, colors, display, and icons.',
+            descAr: 'ملف Manifest أساسي مع الاسم والألوان والعرض والأيقونات.',
+            code: `/* File: manifest.json */
+{
+  "name": "My Student App",
+  "short_name": "StudentApp",
+  "start_url": "./",
+  "display": "standalone",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}`
+          },
+          {
+            id: 'service-worker',
+            titleEn: 'service-worker.js Template',
+            titleAr: 'قالب service-worker.js',
+            descEn: 'Simple cache-first offline support for index, CSS, and JS files.',
+            descAr: 'تخزين بسيط يدعم العمل دون إنترنت لملفات HTML/CSS/JS.',
+            code: `/* File: service-worker.js */
+const CACHE_NAME = 'student-app-cache-v1';
+const ASSETS_TO_CACHE = [
+  './',
+  './index.html',
+  './styles.css',
+  './app.js'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      return cachedResponse || fetch(event.request);
+    })
+  );
+});`
+          },
+          {
+            id: 'sw-register',
+            titleEn: 'Service Worker Register Code',
+            titleAr: 'كود تسجيل Service Worker',
+            descEn: 'Registers service worker safely with support/error messages.',
+            descAr: 'يسجل Service Worker بشكل آمن مع رسائل نجاح/خطأ.',
+            code: `<!-- Add this in your index.html (usually before closing body tag) -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('./service-worker.js');
+        console.log('Service worker registered:', reg.scope);
+      } catch (err) {
+        console.error('Service worker registration failed:', err);
+      }
+    });
+  } else {
+    console.log('Service workers are not supported in this browser.');
+  }
+<\/script>`
+          }
+        ]
+      },
+      {
+        id: 'help',
+        titleEn: '7) Permissions & Help Panel',
+        titleAr: '7) لوحة الأذونات والمساعدة',
+        items: [
+          {
+            id: 'permissions-help',
+            titleEn: 'Mobile Permissions Guide',
+            titleAr: 'دليل أذونات الجوال',
+            descEn: 'Student-friendly notes about HTTPS, mobile differences, and permissions.',
+            descAr: 'ملاحظات بسيطة للطلاب حول HTTPS وفروقات الأجهزة والأذونات.',
+            code: `<!-- Permissions and mobile behavior help panel -->
+<section style="font-family: Arial, sans-serif; max-width: 620px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: #f9fafb;">
+  <h2>Permissions & Mobile Help</h2>
+  <ul>
+    <li>Camera, microphone, and location require <b>HTTPS</b> or <b>localhost</b>.</li>
+    <li>Users must allow permissions from the browser prompt.</li>
+    <li>Android and iOS may behave differently for the same web API.</li>
+    <li>Some WebViews have limited support for camera, mic, GPS, or deep links.</li>
+    <li><code>input type="file" accept="image/*" capture="environment"</code> usually works better on mobile as a fallback.</li>
+  </ul>
+</section>`
+          },
+          {
+            id: 'apk-export',
+            titleEn: 'Export APK (Coming Soon)',
+            titleAr: 'تصدير APK (قريباً)',
+            descEn: 'Frontend-only builder: APK packaging/export needs server-side build/packaging.',
+            descAr: 'المحرر يعمل فقط من الواجهة: تصدير APK يحتاج بناء/تجهيز على السيرفر.',
+            code: `<!-- APK Export (Coming Soon) -->
+<section style="font-family: Arial, sans-serif; max-width: 620px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: #f9fafb;">
+  <h2>APK Export</h2>
+  <p>
+    This website is <b>frontend-only</b> for now.
+    Exporting a real <b>.apk</b> requires server-side packaging (for example Cordova/Capacitor/Gradle).
+  </p>
+  <button onclick="alert('APK export is not available in this frontend-only version. It will be implemented when server packaging/export is required.')">
+    Export APK
+  </button>
+  <p style="margin-top: 10px;">
+    Note: iOS export would be similar, but <b>server support</b> is required first.
+  </p>
+</section>`
+          }
+        ]
+      },
+      {
+        id: 'library',
+        titleEn: '8) MobileFeatures Library Usage',
+        titleAr: '8) استخدام مكتبة MobileFeatures',
+        items: [
+          {
+            id: 'library-quick-usage',
+            titleEn: 'Simple Button + Method Call',
+            titleAr: 'زر بسيط + استدعاء دالة',
+            descEn: 'Use mobile-features-lib.js then call MobileFeatures.scan_qr() from button click.',
+            descAr: 'استخدم ملف mobile-features-lib.js ثم استدعِ MobileFeatures.scan_qr() من الزر.',
+            code: `<!-- index.html example (multi-file project) -->
+<button onclick="MobileFeatures.scan_qr({ videoId: 'qrVideo', canvasId: 'qrCanvas', resultId: 'qrResult', fileInputId: 'qrFileInput' })">Scan QR</button>
+<video id="qrVideo" autoplay playsinline style="width:100%;max-width:320px;background:#000;"></video>
+<canvas id="qrCanvas" style="display:none;"></canvas>
+<input id="qrFileInput" type="file" accept="image/*" capture="environment">
+<p id="qrResult">Ready</p>
+<script src="mobile-features-lib.js"><\/script>`
+          }
+          ,
+          {
+            id: 'library-docs',
+            titleEn: 'MobileFeatures API Documentation',
+            titleAr: 'توثيق واجهة MobileFeatures',
+            descEn: 'Student guide: how to include the library and call the simplest methods.',
+            descAr: 'دليل للطلاب: كيف تضيف المكتبة وتستدعي أبسط الدوال.',
+            code: `<!-- MobileFeatures API Documentation -->
+<!-- 1) Include the library (in your HTML) -->
+<script src="mobile-features-lib.js"><\\/script>
+
+<!-- 2) If you use QR scanning, also include jsQR -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"><\\/script> -->
+
+<!-- 3) Required HTML element IDs for scan_qr (if you use the QR card) -->
+<!-- video: qrVideo (optional if using fallback file input) -->
+<!-- canvas: qrCanvas -->
+<!-- input file: qrFileInput -->
+<!-- output: qrResult -->
+
+<!-- Example: Scan QR (simple one-call) -->
+<button onclick="MobileFeatures.scan_qr({
+  videoId: 'qrVideo',
+  canvasId: 'qrCanvas',
+  resultId: 'qrResult',
+  fileInputId: 'qrFileInput',
+  invert: 'attemptBoth',
+  captureDelayMs: 800
+})">Scan QR</button>
+
+<!-- Other simple methods -->
+<!-- Camera -->
+<!-- <button onclick="MobileFeatures.start_camera({ videoId:'cameraVideo', statusId:'cameraStatus', key:'cam1' })">Start Camera</button> -->
+<!-- <button onclick="MobileFeatures.capture_image({ videoId:'cameraVideo', canvasId:'cameraCanvas', imageId:'capturedImage', statusId:'cameraStatus' })">Capture</button> -->
+<!-- <button onclick="MobileFeatures.stop_camera({ key:'cam1', statusId:'cameraStatus' })">Stop</button> -->
+<!-- GPS -->
+<!-- <button onclick="MobileFeatures.get_location({ outputId:'gpsOutput' })">Get Location</button> -->`
+          }
+        ]
+      }
+    ];
+
+    const simpleLibrarySnippets = {
+      'camera-full': `<!-- Camera (library mode) -->
+<video id="cameraVideo" autoplay playsinline style="width:100%;max-width:320px;background:#000;"></video>
+<canvas id="cameraCanvas" style="display:none;"></canvas>
+<img id="capturedImage" style="max-width:320px;display:block;margin-top:8px;">
+<input id="cameraInput" type="file" accept="image/*" capture="environment">
+<p id="cameraStatus">Ready</p>
+<button onclick="MobileFeatures.start_camera({ videoId:'cameraVideo', statusId:'cameraStatus', key:'cam1' })">Start Camera</button>
+<button onclick="MobileFeatures.capture_image({ videoId:'cameraVideo', canvasId:'cameraCanvas', imageId:'capturedImage', statusId:'cameraStatus' })">Capture</button>
+<button onclick="MobileFeatures.stop_camera({ key:'cam1', statusId:'cameraStatus' })">Stop</button>
+<button onclick="MobileFeatures.load_image_from_input({ inputId:'cameraInput', imageId:'capturedImage', statusId:'cameraStatus' })">Load Fallback Image</button>
+<script src="mobile-features-lib.js"><\/script>`,
+      'mic-recorder': `<!-- Microphone (library mode) -->
+<p id="micStatus">Ready</p>
+<audio id="recordedAudio" controls></audio>
+<a id="downloadAudioLink" download="recording.webm">Download Audio</a>
+<button onclick="MobileFeatures.start_recording({ statusId:'micStatus', key:'mic1' })">Start Recording</button>
+<button onclick="MobileFeatures.stop_recording({ statusId:'micStatus', audioId:'recordedAudio', downloadId:'downloadAudioLink', key:'mic1' })">Stop Recording</button>
+<script src="mobile-features-lib.js"><\/script>`,
+      'gps-watch': `<!-- Location (library mode) -->
+<pre id="gpsOutput">Ready</pre>
+<button onclick="MobileFeatures.get_location({ outputId:'gpsOutput' })">Get Current Location</button>
+<button onclick="MobileFeatures.watch_location({ outputId:'gpsOutput', key:'gps1' })">Watch Location</button>
+<button onclick="MobileFeatures.stop_watch_location({ outputId:'gpsOutput', key:'gps1' })">Stop Watching</button>
+<script src="mobile-features-lib.js"><\/script>`,
+      'qr-jsqr': `<!-- QR From Image (library mode) -->
+<input id="qrFileInput" type="file" accept="image/*" capture="environment">
+<canvas id="qrCanvas" style="display:none;"></canvas>
+<p id="qrResult">Ready</p>
+<button onclick="MobileFeatures.scan_qr({ canvasId:'qrCanvas', resultId:'qrResult', fileInputId:'qrFileInput' })">Scan QR</button>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"><\/script>
+<script src="mobile-features-lib.js"><\/script>`,
+      'camera-capture-qr': `<!-- Camera + QR (library mode) -->
+<video id="qrVideo" autoplay playsinline style="width:100%;max-width:320px;background:#000;"></video>
+<canvas id="qrCanvas" style="display:none;"></canvas>
+<input id="qrFileInput" type="file" accept="image/*" capture="environment">
+<p id="qrResult">Ready</p>
+<button onclick="MobileFeatures.start_camera({ videoId:'qrVideo', statusId:'qrResult', key:'qr1' })">Start Camera</button>
+<button onclick="MobileFeatures.scan_qr({ videoId:'qrVideo', canvasId:'qrCanvas', resultId:'qrResult', fileInputId:'qrFileInput', key:'qr1' })">Scan QR</button>
+<button onclick="MobileFeatures.stop_camera({ key:'qr1', statusId:'qrResult' })">Stop Camera</button>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"><\/script>
+<script src="mobile-features-lib.js"><\/script>`,
+      'device-actions': `<!-- Device Actions (library mode) -->
+<button onclick="MobileFeatures.open_call('+962799123456')">Call</button>
+<button onclick="MobileFeatures.open_sms('+962799123456')">SMS</button>
+<button onclick="MobileFeatures.open_email('test@example.com')">Email</button>
+<button onclick="MobileFeatures.open_map(32.0853,36.0880)">Map</button>
+<button onclick="MobileFeatures.open_whatsapp('962799123456','Hello')">WhatsApp</button>
+<button onclick="MobileFeatures.open_app_with_fallback('myapp://open','https://example.com',2000)">Open App</button>
+<script src="mobile-features-lib.js"><\/script>`,
+      'manifest': `<!-- Generate manifest text using library -->
+<pre id="manifestOutput"></pre>
+<button onclick="document.getElementById('manifestOutput').textContent = MobileFeatures.get_manifest_template()">Generate manifest.json</button>
+<script src="mobile-features-lib.js"><\/script>`,
+      'service-worker': `<!-- Generate service worker text using library -->
+<pre id="swOutput"></pre>
+<button onclick="document.getElementById('swOutput').textContent = MobileFeatures.get_service_worker_template()">Generate service-worker.js</button>
+<script src="mobile-features-lib.js"><\/script>`,
+      'sw-register': `<!-- Register service worker using library -->
+<p id="swStatus">Ready</p>
+<button onclick="MobileFeatures.register_service_worker('./service-worker.js').then(ok => document.getElementById('swStatus').textContent = ok ? 'Registered' : 'Failed')">Register Service Worker</button>
+<script src="mobile-features-lib.js"><\/script>`
+      ,
+      'apk-export': `<!-- APK Export (Coming Soon) -->
+<section style="font-family: Arial, sans-serif; max-width: 620px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: #f9fafb;">
+  <h2>APK Export</h2>
+  <p>
+    This builder is <b>frontend-only</b> for now.
+    Exporting a real <b>.apk</b> needs <b>server-side</b> packaging/build.
+  </p>
+  <button onclick="alert('APK export is not available in this frontend-only version. It will be implemented when server packaging/export is required.')">Export APK</button>
+</section>`
+    };
+
+    mobileSnippetSections.forEach(section => {
+      section.items.forEach(item => {
+        if (simpleLibrarySnippets[item.id]) {
+          item.code = simpleLibrarySnippets[item.id];
+          item.descEn = 'Simple call-only version using MobileFeatures library.';
+          item.descAr = 'نسخة مبسطة تعتمد على استدعاء دوال مكتبة MobileFeatures فقط.';
+        }
+      });
+    });
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    }
+
+    function syncHighlight() {
+      highlightedCode.innerHTML = escapeHtml(editor.value) + "\n";
+      Prism.highlightElement(highlightedCode);
+    }
+
+    function syncScroll() {
+      highlightedPre.scrollTop = editor.scrollTop;
+      highlightedPre.scrollLeft = editor.scrollLeft;
+    }
+
+    function updateCursorStatus() {
+      const lines = editor.value.substr(0, editor.selectionStart).split("\n");
+      const line = lines.length;
+      const column = lines[lines.length - 1].length + 1;
+
+      document.getElementById('editorStatus').textContent = isArabic
+        ? `السطر ${line}، العمود ${column}`
+        : `Line ${line}, Column ${column}`;
+    }
+
+    function rgbToHex(rgb) {
+      if (!rgb) return '#000000';
+      if (rgb.startsWith('#')) return rgb;
+
+      const match = rgb.match(/\d+/g);
+      if (!match || match.length < 3) return '#000000';
+
+      const r = parseInt(match[0], 10).toString(16).padStart(2, '0');
+      const g = parseInt(match[1], 10).toString(16).padStart(2, '0');
+      const b = parseInt(match[2], 10).toString(16).padStart(2, '0');
+      return `#${r}${g}${b}`;
+    }
+
+    function getElementLabel(el) {
+      if (!el) return isArabic ? 'لا يوجد عنصر محدد' : 'No element selected';
+
+      const tag = el.tagName.toLowerCase();
+      const id = el.id ? `#${el.id}` : '';
+      const className = el.className && typeof el.className === 'string'
+        ? '.' + el.className.trim().split(/\s+/).filter(Boolean).join('.')
+        : '';
+
+      return `${tag}${id}${className}`;
+    }
+
+    function getCssSelectorText(el) {
+      if (!el) return '.selected-element';
+
+      const tag = el.tagName ? el.tagName.toLowerCase() : 'element';
+      const id = el.id ? `#${el.id}` : '';
+      const className = el.className && typeof el.className === 'string'
+        ? '.' + el.className.trim().split(/\s+/).filter(Boolean).join('.')
+        : '';
+
+      if (id) return `${tag}${id}`;
+      if (className) return `${tag}${className}`;
+      return tag;
+    }
+
+    function updateGeneratedCssBox() {
+      if (!selectedPreviewElement) {
+        generatedCssBox.textContent = isArabic
+          ? '/* اختر عنصراً لعرض CSS */'
+          : '/* Select an element to view CSS */';
+        return;
+      }
+
+      const style = selectedPreviewElement.style;
+      const cssLines = [];
+
+      const cssMap = [
+        ['color', style.color],
+        ['background-color', style.backgroundColor],
+        ['font-size', style.fontSize],
+        ['font-weight', style.fontWeight],
+        ['text-align', style.textAlign],
+        ['width', style.width],
+        ['height', style.height],
+        ['display', style.display],
+        ['margin', style.margin],
+        ['padding', style.padding],
+        ['border', style.border],
+        ['border-radius', style.borderRadius]
+      ];
+
+      cssMap.forEach(([prop, value]) => {
+        if (value && value.trim() !== '') {
+          cssLines.push(`  ${prop}: ${value};`);
+        }
+      });
+
+      if (cssLines.length === 0) {
+        generatedCssBox.textContent = `/* ${isArabic ? 'لا توجد خصائص CSS مضافة بعد' : 'No CSS properties added yet'} */`;
+        return;
+      }
+
+      const selector = getCssSelectorText(selectedPreviewElement);
+      generatedCssBox.textContent = `${selector} {\n${cssLines.join('\n')}\n}`;
+    }
+
+    function cssPropToKebab(prop) {
+      return prop.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+    }
+
+    function normalizeStyleValue(prop, value) {
+      if (!value) return '';
+      const trimmed = value.trim();
+      if (trimmed === '') return '';
+      return trimmed;
+    }
+
+    function parseStyleAttribute(styleText) {
+      const styles = {};
+      if (!styleText) return styles;
+
+      styleText.split(';').forEach(part => {
+        const item = part.trim();
+        if (!item) return;
+
+        const colonIndex = item.indexOf(':');
+        if (colonIndex === -1) return;
+
+        const key = item.slice(0, colonIndex).trim();
+        const value = item.slice(colonIndex + 1).trim();
+
+        if (key) {
+          styles[key] = value;
+        }
+      });
+
+      return styles;
+    }
+
+    function buildStyleAttribute(stylesObj) {
+      const entries = Object.entries(stylesObj).filter(([_, value]) => value && value.trim() !== '');
+      if (!entries.length) return '';
+      return entries.map(([key, value]) => `${key}: ${value};`).join(' ');
+    }
+
+    function getCleanEditorHtml() {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(editor.value, 'text/html');
+      doc.querySelectorAll('[data-editor-selected="1"]').forEach(node => {
+        node.removeAttribute('data-editor-selected');
+      });
+      return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+    }
+
+    function clearSelectedOutline() {
+      if (selectedPreviewElement) {
+        selectedPreviewElement.style.outline = selectedPrevOutline;
+        selectedPreviewElement.style.outlineOffset = selectedPrevOutlineOffset;
+      }
+    }
+
+    function highlightSelectedElement(el) {
+      clearSelectedOutline();
+      selectedPreviewElement = el;
+
+      if (!selectedPreviewElement) return;
+
+      selectedPrevOutline = selectedPreviewElement.style.outline || '';
+      selectedPrevOutlineOffset = selectedPreviewElement.style.outlineOffset || '';
+
+      selectedPreviewElement.style.outline = '2px solid #2563eb';
+      selectedPreviewElement.style.outlineOffset = '2px';
+    }
+
+    function syncStylePanelFromSelectedElement() {
+      if (!selectedPreviewElement) {
+        selectedElementInfo.textContent = isArabic ? 'لا يوجد عنصر محدد' : 'No element selected';
+        stylePanel.classList.remove('show');
+        updateGeneratedCssBox();
+        return;
+      }
+
+      stylePanel.classList.add('show');
+      selectedElementInfo.textContent = getElementLabel(selectedPreviewElement);
+
+      const style = selectedPreviewElement.style;
+      const computed = selectedPreviewElement.ownerDocument.defaultView.getComputedStyle(selectedPreviewElement);
+
+      cssControls.color.value = rgbToHex(style.color || computed.color);
+      cssControls.backgroundColor.value = rgbToHex(style.backgroundColor || computed.backgroundColor);
+      cssControls.fontSize.value = style.fontSize || '';
+      cssControls.fontWeight.value = style.fontWeight || '';
+      cssControls.textAlign.value = style.textAlign || '';
+      cssControls.width.value = style.width || '';
+      cssControls.height.value = style.height || '';
+      cssControls.display.value = style.display || '';
+      cssControls.margin.value = style.margin || '';
+      cssControls.padding.value = style.padding || '';
+      cssControls.border.value = style.border || '';
+      cssControls.borderRadius.value = style.borderRadius || '';
+
+      updateGeneratedCssBox();
+    }
+
+    function selectPreviewElement(el) {
+      if (!el || !el.tagName) return;
+      if (el.tagName.toLowerCase() === 'html') return;
+
+      try {
+        const previewDoc = previewFrameRef.contentDocument;
+
+        previewDoc.querySelectorAll('[data-editor-selected="1"]').forEach(node => {
+          node.removeAttribute('data-editor-selected');
+        });
+
+        el.setAttribute('data-editor-selected', '1');
+
+        const parser = new DOMParser();
+        const sourceDoc = parser.parseFromString(editor.value, 'text/html');
+
+        sourceDoc.querySelectorAll('[data-editor-selected="1"]').forEach(node => {
+          node.removeAttribute('data-editor-selected');
+        });
+
+        const allPreviewEls = Array.from(previewDoc.body.querySelectorAll('*'));
+        const selectedIndex = allPreviewEls.indexOf(el);
+
+        const allSourceEls = Array.from(sourceDoc.body.querySelectorAll('*'));
+        if (selectedIndex >= 0 && allSourceEls[selectedIndex]) {
+          allSourceEls[selectedIndex].setAttribute('data-editor-selected', '1');
+          editor.value = '<!DOCTYPE html>\n' + sourceDoc.documentElement.outerHTML;
+          lastSavedValue = editor.value;
+          syncHighlight();
+          updateCursorStatus();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+
+      highlightSelectedElement(el);
+      syncStylePanelFromSelectedElement();
+    }
+
+    function resetSelectionState(removeFromEditor = false) {
+      clearSelectedOutline();
+
+      try {
+        const previewDoc = previewFrameRef.contentDocument;
+        if (previewDoc) {
+          previewDoc.querySelectorAll('[data-editor-selected="1"]').forEach(node => {
+            node.removeAttribute('data-editor-selected');
+          });
+        }
+
+        if (removeFromEditor) {
+          const parser = new DOMParser();
+          const sourceDoc = parser.parseFromString(editor.value, 'text/html');
+          sourceDoc.querySelectorAll('[data-editor-selected="1"]').forEach(node => {
+            node.removeAttribute('data-editor-selected');
+          });
+          editor.value = '<!DOCTYPE html>\n' + sourceDoc.documentElement.outerHTML;
+          lastSavedValue = editor.value;
+          syncHighlight();
+          updateCursorStatus();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+
+      selectedPreviewElement = null;
+      selectedPrevOutline = '';
+      selectedPrevOutlineOffset = '';
+      selectedElementInfo.textContent = isArabic ? 'لا يوجد عنصر محدد' : 'No element selected';
+      stylePanel.classList.remove('show');
+      updateGeneratedCssBox();
+    }
+
+    function attachPreviewSelection() {
+      try {
+        const doc = previewFrameRef.contentDocument || previewFrameRef.contentWindow.document;
+        if (!doc) return;
+
+        doc.addEventListener('click', function(e) {
+          if (!selectMode) return;
+
+          e.preventDefault();
+          e.stopPropagation();
+
+          const target = e.target;
+          if (!target || !target.tagName) return;
+
+          selectPreviewElement(target);
+        }, true);
+
+        if (doc.body) {
+          doc.body.style.cursor = selectMode ? 'crosshair' : 'default';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function saveCurrentFileContent() {
+      if (isViewingAssetFile) return;
+      files[currentFileName] = editor.value;
+    }
+
+    function getPrimaryHtmlFile() {
+      if (currentFileName.toLowerCase().endsWith('.html')) return currentFileName;
+      const htmlFile = Object.keys(files).find(name => name.toLowerCase().endsWith('.html'));
+      return htmlFile || currentFileName;
+    }
+
+    function buildPreviewHtml(entryFile) {
+      let html = files[entryFile] || '';
+      html = html.replace(/<link([^>]*?)href=["']([^"']+)["']([^>]*)>/gi, (full, before, href, after) => {
+        const key = href.trim();
+        if (files[key] !== undefined && key.toLowerCase().endsWith('.css')) {
+          return `<style data-file="${key}">\n${files[key]}\n</style>`;
+        }
+        return full;
+      });
+
+      html = html.replace(/<script([^>]*?)src=["']([^"']+)["']([^>]*)><\/script>/gi, (full, before, src, after) => {
+        const key = src.trim();
+        if (files[key] !== undefined && key.toLowerCase().endsWith('.js')) {
+          return `<script data-file="${key}">\n${files[key]}\n<\/script>`;
+        }
+        return full;
+      });
+
+      html = html.replace(/<img([^>]*?)src=["']([^"']+)["']([^>]*)>/gi, (full, before, src, after) => {
+        const key = src.trim();
+        if (files[key] && typeof files[key] === 'string' && files[key].startsWith('data:image/')) {
+          return `<img${before}src="${files[key]}"${after}>`;
+        }
+        return full;
+      });
+
+      html = html.replace(/<video([^>]*?)src=["']([^"']+)["']([^>]*)>/gi, (full, before, src, after) => {
+        const key = src.trim();
+        if (files[key] && typeof files[key] === 'string' && files[key].startsWith('data:video/')) {
+          return `<video${before}src="${files[key]}"${after}>`;
+        }
+        return full;
+      });
+
+      html = html.replace(/<audio([^>]*?)src=["']([^"']+)["']([^>]*)>/gi, (full, before, src, after) => {
+        const key = src.trim();
+        if (files[key] && typeof files[key] === 'string' && files[key].startsWith('data:audio/')) {
+          return `<audio${before}src="${files[key]}"${after}>`;
+        }
+        return full;
+      });
+
+      html = html.replace(/<source([^>]*?)src=["']([^"']+)["']([^>]*)>/gi, (full, before, src, after) => {
+        const key = src.trim();
+        if (files[key] && typeof files[key] === 'string') {
+          const v = files[key];
+          if (v.startsWith('data:video/')) return `<source${before}src="${v}"${after}>`;
+          if (v.startsWith('data:audio/')) return `<source${before}src="${v}"${after}>`;
+        }
+        return full;
+      });
+      return html;
+    }
+
+    function refreshFileSelector() {
+      const names = Object.keys(files);
+      fileSelector.innerHTML = names
+        .map(name => {
+          const kind = getAssetKind(name);
+          const icon = kind === 'image' ? '🖼 ' : (kind === 'video' ? '🎥 ' : (kind === 'audio' ? '🎵 ' : ''));
+          return `<option value="${name}">${icon}${name}</option>`;
+        })
+        .join('');
+      fileSelector.value = currentFileName;
+    }
+
+    function loadFileIntoEditor(fileName) {
+      if (!Object.prototype.hasOwnProperty.call(files, fileName)) return;
+      saveCurrentFileContent();
+      currentFileName = fileName;
+      if (isMediaFile(currentFileName)) {
+        isViewingAssetFile = true;
+        editor.readOnly = true;
+        const raw = files[currentFileName] || '';
+        const sizeKb = Math.round((raw.length * 0.75) / 1024);
+        editor.value = `/* Image asset file */
+Name: ${currentFileName}
+Type: ${raw.slice(5, raw.indexOf(';')) || getAssetKind(currentFileName)}
+Approx size: ${sizeKb} KB
+
+This is a binary image stored as data URL.
+Use it in HTML:
+<img src="${currentFileName}" alt="${currentFileName}">`;
+      } else {
+        isViewingAssetFile = false;
+        editor.readOnly = false;
+        editor.value = files[currentFileName];
+      }
+      document.getElementById('htmlTabTitle').textContent = (isArabic ? 'المحرر: ' : 'Editor: ') + currentFileName;
+      historyStack = [];
+      redoStack = [];
+      lastSavedValue = editor.value;
+      syncHighlight();
+      updateCursorStatus();
+      refreshFileSelector();
+      updatePreview();
+    }
+
+    function updatePreview() {
+      saveCurrentFileContent();
+      const doc = previewFrameRef.contentDocument || previewFrameRef.contentWindow.document;
+      const entryFile = getPrimaryHtmlFile();
+      const previewHtml = buildPreviewHtml(entryFile);
+      resetSelectionState(false);
+      doc.open();
+      doc.write(previewHtml);
+      doc.close();
+
+      setTimeout(() => {
+        attachPreviewSelection();
+      }, 0);
+
+      document.getElementById('previewStatus').textContent = isArabic
+        ? "آخر تحديث: " + new Date().toLocaleTimeString()
+        : "Last updated: " + new Date().toLocaleTimeString();
+    }
+
+    function applyPreviewIframePermissions(iframeEl) {
+      if (!iframeEl) return;
+      iframeEl.setAttribute('allow', 'camera *; microphone *; geolocation *');
+    }
+
+    function saveHistorySnapshot() {
+      if (isRestoringHistory) return;
+
+      const currentValue = editor.value;
+      if (currentValue === lastSavedValue) return;
+
+      historyStack.push(lastSavedValue);
+
+      if (historyStack.length > HISTORY_LIMIT) {
+        historyStack.shift();
+      }
+
+      lastSavedValue = currentValue;
+      redoStack = [];
+    }
+
+    function restoreEditorState(value) {
+      isRestoringHistory = true;
+      editor.value = value;
+      syncHighlight();
+      updateCursorStatus();
+      syncScroll();
+      isRestoringHistory = false;
+    }
+
+    function undoEditorChange() {
+      if (historyStack.length === 0) return;
+
+      redoStack.push(editor.value);
+      const previousValue = historyStack.pop();
+      restoreEditorState(previousValue);
+      lastSavedValue = previousValue;
+      updatePreview();
+    }
+
+    function redoEditorChange() {
+      if (redoStack.length === 0) return;
+
+      historyStack.push(editor.value);
+      const nextValue = redoStack.pop();
+      restoreEditorState(nextValue);
+      lastSavedValue = nextValue;
+      updatePreview();
+    }
+
+    function insertAtCursor(text) {
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const before = editor.value.substring(0, start);
+      const after = editor.value.substring(end);
+
+      saveHistorySnapshot();
+
+      editor.value = before + text + after;
+      editor.focus();
+      editor.selectionStart = editor.selectionEnd = start + text.length;
+
+      lastSavedValue = editor.value;
+      syncHighlight();
+      updateCursorStatus();
+    }
+
+    function getSnippetTitle(key) {
+      const title = isArabic ? titleMapAr[key] : titleMapEn[key];
+      return isArabic ? `كود ${title}` : `${title} Code`;
+    }
+
+    function normalizeSnippetCode(code) {
+      return String(code || '').replace(/<\\\/script>/g, '</scr' + 'ipt>');
+    }
+
+    function formatByBraces(source) {
+      const lines = source.replace(/\r\n/g, '\n').split('\n');
+      let indent = 0;
+      const out = [];
+      lines.forEach(rawLine => {
+        const line = rawLine.trim();
+        if (!line) {
+          out.push('');
+          return;
+        }
+        if (/^[}\]\)]/.test(line)) indent = Math.max(0, indent - 1);
+        out.push('  '.repeat(indent) + line);
+        if (/[{[(]\s*$/.test(line) || /{\s*$/.test(line)) indent += 1;
+      });
+      return out.join('\n');
+    }
+
+    function formatHtml(source) {
+      const clean = source.replace(/\r\n/g, '\n').replace(/>\s+</g, '><').trim();
+      const tokens = clean.split(/(<[^>]+>)/g).filter(Boolean);
+      let indent = 0;
+      const out = [];
+      tokens.forEach(token => {
+        const t = token.trim();
+        if (!t) return;
+        const isTag = t.startsWith('<') && t.endsWith('>');
+        const isClosing = isTag && /^<\//.test(t);
+        const isSelfClosing = isTag && (/\/>$/.test(t) || /^<(meta|link|img|input|br|hr)/i.test(t));
+        if (isClosing) indent = Math.max(0, indent - 1);
+        out.push('  '.repeat(indent) + t);
+        if (isTag && !isClosing && !isSelfClosing) indent += 1;
+      });
+      return out.join('\n');
+    }
+
+    function formatCurrentCode() {
+      const name = currentFileName.toLowerCase();
+      let formatted = editor.value;
+      if (name.endsWith('.html')) {
+        formatted = formatHtml(editor.value);
+      } else if (name.endsWith('.css') || name.endsWith('.js')) {
+        formatted = formatByBraces(editor.value);
+      }
+
+      if (formatted === editor.value) return;
+      saveHistorySnapshot();
+      editor.value = formatted;
+      saveCurrentFileContent();
+      lastSavedValue = editor.value;
+      syncHighlight();
+      updateCursorStatus();
+      syncScroll();
+      updatePreview();
+    }
+
+    function getNextAvailableFileName(baseName, extension) {
+      let index = 1;
+      let candidate = `${baseName}-${index}.${extension}`;
+      while (Object.prototype.hasOwnProperty.call(files, candidate)) {
+        index += 1;
+        candidate = `${baseName}-${index}.${extension}`;
+      }
+      return candidate;
+    }
+
+    function createNewFileFlow() {
+      const suggested = currentFileName.toLowerCase().endsWith('.html')
+        ? getNextAvailableFileName('page', 'html')
+        : getNextAvailableFileName('file', 'js');
+      const fileName = prompt(
+        isArabic ? 'اسم الملف الجديد (مثال: page2.html أو app.js)' : 'Create file (example: page2.html or app.js)',
+        suggested
+      );
+      if (!fileName) return;
+      if (files[fileName]) {
+        alert(isArabic ? 'الملف موجود بالفعل' : 'File already exists');
+        return;
+      }
+      const ext = fileName.split('.').pop().toLowerCase();
+      if (!['html', 'css', 'js'].includes(ext)) {
+        alert(isArabic ? 'الامتدادات المدعومة: html, css, js' : 'Supported extensions: html, css, js');
+        return;
+      }
+      saveCurrentFileContent();
+      files[fileName] = ext === 'html'
+        ? '<!DOCTYPE html>\n<html>\n<head>\n  <title>New Page</title>\n  <link rel="stylesheet" href="styles.css">\n</head>\n<body>\n\n  <script src="app.js"><\\/script>\n</body>\n</html>'
+        : ext === 'css'
+          ? '/* New styles file */\n'
+          : '// New JavaScript file\n';
+      loadFileIntoEditor(fileName);
+    }
+
+    function openModal(key, code) {
+      currentSnippetKey = key;
+      currentSnippet = normalizeSnippetCode(code);
+      modalTitle.textContent = getSnippetTitle(key);
+      snippetCode.textContent = currentSnippet;
+      snippetModal.classList.add('show');
+    }
+
+    function closeModal() {
+      snippetModal.classList.remove('show');
+    }
+
+    function renderMobileFeatureCards() {
+      mobileFeaturesGrid.innerHTML = '';
+
+      mobileSnippetSections.forEach(section => {
+        const sectionEl = document.createElement('section');
+        sectionEl.className = 'mobile-feature-section';
+
+        const header = document.createElement('div');
+        header.className = 'mobile-feature-section-header';
+        header.textContent = isArabic ? section.titleAr : section.titleEn;
+        sectionEl.appendChild(header);
+
+        const cardsWrap = document.createElement('div');
+        cardsWrap.className = 'mobile-feature-cards';
+
+        section.items.forEach(item => {
+          const card = document.createElement('article');
+          card.className = 'mobile-feature-card';
+
+          const title = document.createElement('h4');
+          title.className = 'mobile-feature-title';
+          title.textContent = isArabic ? item.titleAr : item.titleEn;
+          card.appendChild(title);
+
+          const desc = document.createElement('p');
+          desc.className = 'mobile-feature-desc';
+          desc.textContent = isArabic ? item.descAr : item.descEn;
+          card.appendChild(desc);
+
+          const button = document.createElement('button');
+          button.className = 'insert-mobile-snippet-btn';
+          button.textContent = isArabic ? 'إدراج الكود' : 'Insert Code';
+          button.addEventListener('click', () => {
+            insertAtCursor('\n' + normalizeSnippetCode(item.code) + '\n');
+            mobileFeaturesModal.classList.remove('show');
+          });
+          card.appendChild(button);
+
+          cardsWrap.appendChild(card);
+        });
+
+        sectionEl.appendChild(cardsWrap);
+        mobileFeaturesGrid.appendChild(sectionEl);
+      });
+    }
+
+    function updateEditorFromPreviewSelection(prop, value) {
+      if (!selectedPreviewElement) return;
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(editor.value, 'text/html');
+      const sourceEl = doc.querySelector('[data-editor-selected="1"]');
+
+      if (!sourceEl) return;
+
+      const cssName = cssPropToKebab(prop);
+      const styles = parseStyleAttribute(sourceEl.getAttribute('style') || '');
+
+      if (!value || value.trim() === '') {
+        delete styles[cssName];
+      } else {
+        styles[cssName] = normalizeStyleValue(prop, value);
+      }
+
+      const newStyle = buildStyleAttribute(styles);
+
+      if (newStyle) {
+        sourceEl.setAttribute('style', newStyle);
+      } else {
+        sourceEl.removeAttribute('style');
+      }
+
+      const markedPreviewEl = previewFrameRef.contentDocument.querySelector('[data-editor-selected="1"]');
+      if (markedPreviewEl) {
+        if (newStyle) {
+          markedPreviewEl.setAttribute('style', newStyle);
+        } else {
+          markedPreviewEl.removeAttribute('style');
+        }
+      }
+
+      editor.value = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+      lastSavedValue = editor.value;
+      syncHighlight();
+      updateCursorStatus();
+    }
+
+    function applyCssToSelectedElement(prop, value) {
+      if (!selectedPreviewElement) return;
+
+      const normalizedValue = normalizeStyleValue(prop, value);
+
+      if (normalizedValue === '') {
+        selectedPreviewElement.style[prop] = '';
+      } else {
+        selectedPreviewElement.style[prop] = normalizedValue;
+      }
+
+      updateEditorFromPreviewSelection(prop, normalizedValue);
+      highlightSelectedElement(selectedPreviewElement);
+      updateGeneratedCssBox();
+    }
+
+    function bindCssControls() {
+      cssControls.color.addEventListener('input', function() {
+        applyCssToSelectedElement('color', this.value);
+      });
+
+      cssControls.backgroundColor.addEventListener('input', function() {
+        applyCssToSelectedElement('backgroundColor', this.value);
+      });
+
+      cssControls.fontSize.addEventListener('input', function() {
+        applyCssToSelectedElement('fontSize', this.value);
+      });
+
+      cssControls.fontWeight.addEventListener('change', function() {
+        applyCssToSelectedElement('fontWeight', this.value);
+      });
+
+      cssControls.textAlign.addEventListener('change', function() {
+        applyCssToSelectedElement('textAlign', this.value);
+      });
+
+      cssControls.width.addEventListener('input', function() {
+        applyCssToSelectedElement('width', this.value);
+      });
+
+      cssControls.height.addEventListener('input', function() {
+        applyCssToSelectedElement('height', this.value);
+      });
+
+      cssControls.display.addEventListener('change', function() {
+        applyCssToSelectedElement('display', this.value);
+      });
+
+      cssControls.margin.addEventListener('input', function() {
+        applyCssToSelectedElement('margin', this.value);
+      });
+
+      cssControls.padding.addEventListener('input', function() {
+        applyCssToSelectedElement('padding', this.value);
+      });
+
+      cssControls.border.addEventListener('input', function() {
+        applyCssToSelectedElement('border', this.value);
+      });
+
+      cssControls.borderRadius.addEventListener('input', function() {
+        applyCssToSelectedElement('borderRadius', this.value);
+      });
+    }
+
+    function applyLanguage() {
+      document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
+      document.documentElement.lang = isArabic ? 'ar' : 'en';
+
+      document.getElementById('langBtn').textContent = isArabic ? 'English' : 'العربية';
+      document.getElementById('titleText').textContent = isArabic ? 'محرر يعرب للغة HTML' : 'Yarub HTML Playground';
+      document.getElementById('htmlTabTitle').textContent = (isArabic ? 'المحرر: ' : 'Editor: ') + currentFileName;
+      document.getElementById('viewTabTitle').textContent = isArabic ? 'المعاينة' : 'Preview';
+      document.getElementById('loadLabel').textContent = isArabic ? 'تحميل مشروع' : 'Load Project';
+      document.getElementById('imageUploadLabel').textContent = isArabic ? 'رفع وسائط' : 'Upload Media';
+      document.getElementById('runBtn').textContent = isArabic ? 'تشغيل' : 'Run';
+      document.getElementById('formatBtn').textContent = isArabic ? 'تنسيق الكود' : 'Format Code';
+      document.getElementById('fullscreenBtn').textContent = isArabic ? 'عرض كامل' : 'Full Screen View';
+      document.getElementById('mobileBtn').textContent = isArabic ? 'عرض الجوال' : 'Mobile View';
+      document.getElementById('selectModeBtn').textContent = isArabic ? 'تحديد عنصر' : 'Select Element';
+      document.getElementById('mobileFeaturesBtn').textContent = isArabic ? 'ميزات الجوال' : 'Mobile Features';
+      document.getElementById('mobileFeaturesTitle').textContent = isArabic ? 'ميزات الجوال وتكامل الجهاز' : 'Mobile Features & Device Integration';
+      document.getElementById('mobileFeaturesIntro').textContent = isArabic
+        ? 'اختر الميزة ثم اضغط "إدراج الكود" لإضافة مثال كامل داخل المحرر.'
+        : 'Choose a feature, then click "Insert Code" to add a full working example into the editor.';
+      document.getElementById('closeMobileFeaturesBtn').textContent = isArabic ? 'إغلاق' : 'Close';
+      document.getElementById('closeModalBtn').textContent = isArabic ? 'إغلاق' : 'Close';
+      document.getElementById('copySnippetBtn').textContent = isArabic ? 'نسخ الكود' : 'Copy Code';
+      document.getElementById('insertSnippetBtn').textContent = isArabic ? 'إدراج في المحرر' : 'Insert Into Editor';
+      document.getElementById('saveBtn').textContent = isArabic ? 'حفظ المشروع' : 'Save Project';
+      saveFormatSelector.options[0].text = isArabic ? 'JSON' : 'JSON';
+      saveFormatSelector.options[1].text = isArabic ? 'كل الملفات' : 'All Files';
+      document.getElementById('newFileBtn').textContent = isArabic ? 'إنشاء ملف جديد' : 'Create New File';
+      document.getElementById('deleteFileBtn').textContent = isArabic ? 'حذف الملف' : 'Delete File';
+
+      document.getElementById('stylePanelTitle').textContent = isArabic ? 'خصائص العنصر' : 'Element Styles';
+      document.getElementById('groupTextTitle').textContent = isArabic ? 'النص' : 'Text';
+      document.getElementById('groupBoxTitle').textContent = isArabic ? 'الصندوق' : 'Box';
+      document.getElementById('groupSpacingTitle').textContent = isArabic ? 'المسافات' : 'Spacing';
+      document.getElementById('groupBorderTitle').textContent = isArabic ? 'الحدود' : 'Border';
+
+      document.getElementById('labelColor').textContent = isArabic ? 'لون النص' : 'Text Color';
+      document.getElementById('labelBackground').textContent = isArabic ? 'لون الخلفية' : 'Background Color';
+      document.getElementById('labelFontSize').textContent = isArabic ? 'حجم الخط' : 'Font Size';
+      document.getElementById('labelFontWeight').textContent = isArabic ? 'سماكة الخط' : 'Font Weight';
+      document.getElementById('labelTextAlign').textContent = isArabic ? 'محاذاة النص' : 'Text Align';
+      document.getElementById('labelWidth').textContent = isArabic ? 'العرض' : 'Width';
+      document.getElementById('labelHeight').textContent = isArabic ? 'الارتفاع' : 'Height';
+      document.getElementById('labelDisplay').textContent = isArabic ? 'نوع العرض' : 'Display';
+      document.getElementById('labelMargin').textContent = isArabic ? 'الهامش الخارجي' : 'Margin';
+      document.getElementById('labelPadding').textContent = isArabic ? 'الهامش الداخلي' : 'Padding';
+      document.getElementById('labelBorder').textContent = isArabic ? 'الحد' : 'Border';
+      document.getElementById('labelBorderRadius').textContent = isArabic ? 'استدارة الحواف' : 'Border Radius';
+      document.getElementById('groupGeneratedCssTitle').textContent = isArabic ? 'CSS الناتج' : 'Generated CSS';
+      document.getElementById('labelGeneratedCss').textContent = isArabic ? 'كود CSS' : 'CSS Code';
+
+      document.getElementById('clearStylesBtn').textContent = isArabic ? 'مسح التنسيقات' : 'Clear Styles';
+      document.getElementById('closeStylePanelBtn').textContent = isArabic ? 'إغلاق اللوحة' : 'Close Panel';
+      document.getElementById('footerText').textContent = isArabic
+        ? 'برمجة وتصميم م. يعرب وحشة - مدرسة ابن تيمية الثانوية الشاملة للبنين'
+        : 'Programming and Design by Eng. Yarub Wahsha - Ibn Taymiyyah Secondary School for Boys';
+
+      tagSelector.options[0].text = isArabic ? 'وسوم HTML' : 'HTML Tags';
+      tagSelector.options[1].text = isArabic ? 'عنوان 1' : 'Heading 1';
+      tagSelector.options[2].text = isArabic ? 'عنوان 2' : 'Heading 2';
+      tagSelector.options[3].text = isArabic ? 'عنوان 3' : 'Heading 3';
+      tagSelector.options[4].text = isArabic ? 'عنوان 4' : 'Heading 4';
+      tagSelector.options[5].text = isArabic ? 'عنوان 5' : 'Heading 5';
+      tagSelector.options[6].text = isArabic ? 'عنوان 6' : 'Heading 6';
+      tagSelector.options[7].text = isArabic ? 'فقرة' : 'Paragraph';
+      tagSelector.options[8].text = isArabic ? 'صورة' : 'Image';
+      tagSelector.options[9].text = isArabic ? 'صوت' : 'Audio';
+      tagSelector.options[10].text = isArabic ? 'فيديو' : 'Video';
+      tagSelector.options[11].text = isArabic ? 'زر' : 'Button';
+      tagSelector.options[12].text = isArabic ? 'رابط' : 'Link';
+      tagSelector.options[13].text = isArabic ? 'قائمة مرتبة' : 'Ordered List';
+      tagSelector.options[14].text = isArabic ? 'قائمة غير مرتبة' : 'Unordered List';
+      tagSelector.options[15].text = isArabic ? 'مربع نص' : 'Text Box';
+      tagSelector.options[16].text = isArabic ? 'تسمية' : 'Label';
+
+      if (snippetModal.classList.contains('show') && currentSnippetKey) {
+        modalTitle.textContent = getSnippetTitle(currentSnippetKey);
+      }
+
+      renderMobileFeatureCards();
+
+      if (!selectedPreviewElement) {
+        selectedElementInfo.textContent = isArabic ? 'لا يوجد عنصر محدد' : 'No element selected';
+      }
+
+      updateGeneratedCssBox();
+      updateCursorStatus();
+      updatePreview();
+    }
+
+    runBtn.addEventListener('click', () => {
+      if (!isViewingAssetFile && currentFileName.toLowerCase().endsWith('.html')) {
+        editor.value = getCleanEditorHtml();
+      }
+      lastSavedValue = editor.value;
+      saveCurrentFileContent();
+      syncHighlight();
+      updateCursorStatus();
+      updatePreview();
+    });
+
+    formatBtn.addEventListener('click', formatCurrentCode);
+
+    editor.addEventListener('input', () => {
+      saveHistorySnapshot();
+      saveCurrentFileContent();
+      syncHighlight();
+      updateCursorStatus();
+    });
+
+    editor.addEventListener('click', updateCursorStatus);
+    editor.addEventListener('keyup', updateCursorStatus);
+    editor.addEventListener('scroll', syncScroll);
+
+    editor.addEventListener('keydown', function(e) {
+      const key = e.key.toLowerCase();
+
+      if (e.ctrlKey && !e.shiftKey && key === 'z') {
+        e.preventDefault();
+        undoEditorChange();
+        return;
+      }
+
+      if ((e.ctrlKey && key === 'y') || (e.ctrlKey && e.shiftKey && key === 'z')) {
+        e.preventDefault();
+        redoEditorChange();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+
+        saveHistorySnapshot();
+
+        this.value = this.value.substring(0, start) + "  " + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 2;
+
+        lastSavedValue = this.value;
+        syncHighlight();
+        updateCursorStatus();
+      }
+    });
+
+    document.getElementById('fullscreenBtn').addEventListener('click', () => {
+      container.classList.toggle('fullscreen-preview');
+    });
+
+    document.getElementById('mobileBtn').addEventListener('click', () => {
+      const isMobile = previewWrap.querySelector('.mobile-frame');
+      previewWrap.innerHTML = '';
+
+      const newIframe = document.createElement('iframe');
+      newIframe.id = 'previewFrame';
+      applyPreviewIframePermissions(newIframe);
+
+      if (!isMobile) {
+        const frame = document.createElement('div');
+        frame.className = 'mobile-frame';
+        frame.appendChild(newIframe);
+        previewWrap.appendChild(frame);
+      } else {
+        previewWrap.appendChild(newIframe);
+      }
+
+      previewFrameRef = newIframe;
+      updatePreview();
+    });
+
+    selectModeBtn.addEventListener('click', () => {
+      selectMode = !selectMode;
+      selectModeBtn.classList.toggle('active', selectMode);
+
+      try {
+        const doc = previewFrameRef.contentDocument || previewFrameRef.contentWindow.document;
+        if (doc && doc.body) {
+          doc.body.style.cursor = selectMode ? 'crosshair' : 'default';
+        }
+      } catch (err) {}
+
+      if (!selectMode) {
+        resetSelectionState(true);
+      }
+    });
+
+    clearStylesBtn.addEventListener('click', () => {
+      if (!selectedPreviewElement) return;
+
+      const props = [
+        'color', 'backgroundColor', 'fontSize', 'fontWeight', 'textAlign',
+        'width', 'height', 'display', 'margin', 'padding', 'border', 'borderRadius'
+      ];
+
+      props.forEach(prop => {
+        selectedPreviewElement.style[prop] = '';
+        updateEditorFromPreviewSelection(prop, '');
+      });
+
+      highlightSelectedElement(selectedPreviewElement);
+      syncStylePanelFromSelectedElement();
+    });
+
+    closeStylePanelBtn.addEventListener('click', () => {
+      resetSelectionState(true);
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const exportMode = (saveFormatSelector && saveFormatSelector.value) ? saveFormatSelector.value : 'json';
+
+      if (!isViewingAssetFile && currentFileName.toLowerCase().endsWith('.html')) {
+        editor.value = getCleanEditorHtml();
+      }
+      saveCurrentFileContent();
+      lastSavedValue = editor.value;
+      syncHighlight();
+      updateCursorStatus();
+
+      function mimeForFile(name) {
+        const lower = String(name || '').toLowerCase();
+        if (lower.endsWith('.html')) return 'text/html';
+        if (lower.endsWith('.css')) return 'text/css';
+        if (lower.endsWith('.js')) return 'text/javascript';
+        if (lower.endsWith('.json')) return 'application/json';
+        return 'text/plain';
+      }
+
+      function downloadBlob(blob, filename) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      async function downloadDataUrlAsFile(dataUrl, filename) {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        downloadBlob(blob, filename);
+      }
+
+      async function exportAllFiles() {
+        const entries = Object.entries(files);
+
+        for (const [name, content] of entries) {
+          // Skip any non-string values (shouldn't happen, but keeps export safe)
+          if (typeof content !== 'string') continue;
+
+          if (isMediaFile(name) && content.startsWith('data:')) {
+            await downloadDataUrlAsFile(content, name);
+          } else {
+            const blob = new Blob([content], { type: mimeForFile(name) });
+            downloadBlob(blob, name);
+          }
+        }
+
+        const manifest = {
+          currentFileName,
+          files: Object.keys(files)
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
+        downloadBlob(manifestBlob, 'project-manifest.json');
+      }
+
+      if (exportMode === 'files') {
+        exportAllFiles().catch(() => {
+          alert(isArabic ? 'تعذر تصدير الملفات' : 'Failed to export files');
+        });
+        return;
+      }
+
+      const projectData = { currentFileName, files };
+      const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'project.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    document.getElementById('loadFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        if (file.name.toLowerCase().endsWith('.json')) {
+          try {
+            const parsed = JSON.parse(text);
+            if (!parsed || typeof parsed !== 'object' || !parsed.files) throw new Error('Invalid project file');
+            files = parsed.files;
+            currentFileName = parsed.currentFileName && Object.prototype.hasOwnProperty.call(files, parsed.currentFileName)
+              ? parsed.currentFileName
+              : Object.keys(files)[0];
+            editor.value = files[currentFileName] || '';
+            refreshFileSelector();
+          } catch (error) {
+            alert(isArabic ? 'ملف المشروع غير صالح' : 'Invalid project file');
+            return;
+          }
+        } else if (!isMediaFile(currentFileName)) {
+          files[currentFileName] = text;
+          editor.value = text;
+        }
+
+        historyStack = [];
+        redoStack = [];
+        lastSavedValue = editor.value;
+        syncHighlight();
+        updateCursorStatus();
+        updatePreview();
+      };
+      reader.readAsText(file);
+    });
+
+    function escapeHtmlAttr(value) {
+      return String(value || '').replace(/"/g, '&quot;');
+    }
+
+    imageUploadInput.addEventListener('change', async function(e) {
+      const selected = Array.from(e.target.files || []);
+      if (!selected.length) return;
+
+      const results = await Promise.all(selected.map(file => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ file, dataUrl: reader.result });
+        reader.readAsDataURL(file);
+      })));
+
+      // Store assets in project files
+      results.forEach(({ file, dataUrl }) => {
+        files[file.name] = dataUrl;
+      });
+
+      // If we're on an HTML page, insert correct tag for each uploaded file
+      if (currentFileName.toLowerCase().endsWith('.html') && !isViewingAssetFile) {
+        results.forEach(({ file }) => {
+          const kind = getAssetKind(file.name);
+          const safeName = escapeHtmlAttr(file.name);
+
+          let snippet = '';
+          if (kind === 'image') {
+            snippet = `<img src="${safeName}" alt="${safeName}" style="max-width:100%;height:auto;display:block;margin:10px 0;">`;
+          } else if (kind === 'video') {
+            snippet = `<video src="${safeName}" controls style="width:100%;max-width:480px;height:auto;display:block;margin:10px 0;"></video>`;
+          } else if (kind === 'audio') {
+            snippet = `<audio src="${safeName}" controls style="width:100%;display:block;margin:10px 0;"></audio>`;
+          } else {
+            snippet = `<!-- Unsupported file type for insertion: ${safeName} -->`;
+          }
+
+          insertAtCursor('\n' + snippet + '\n');
+        });
+      }
+
+      refreshFileSelector();
+      updatePreview();
+      alert(isArabic
+        ? 'تم رفع الوسائط. استخدم src باسم الملف داخل HTML.'
+        : 'Media uploaded. Use src with the file name inside HTML.');
+
+      imageUploadInput.value = '';
+    });
+
+    fileSelector.addEventListener('change', function() {
+      loadFileIntoEditor(this.value);
+    });
+
+    newFileBtn.addEventListener('click', createNewFileFlow);
+
+    deleteFileBtn.addEventListener('click', () => {
+      const names = Object.keys(files);
+      if (names.length <= 1) {
+        alert(isArabic ? 'يجب أن يبقى ملف واحد على الأقل' : 'At least one file must remain');
+        return;
+      }
+      if (!confirm((isArabic ? 'حذف الملف: ' : 'Delete file: ') + currentFileName + '?')) return;
+      delete files[currentFileName];
+      const nextFile = Object.keys(files)[0];
+      loadFileIntoEditor(nextFile);
+    });
+
+    document.getElementById('langBtn').addEventListener('click', function() {
+      isArabic = !isArabic;
+      applyLanguage();
+    });
+
+    mobileFeaturesBtn.addEventListener('click', () => {
+      mobileFeaturesModal.classList.add('show');
+    });
+
+    closeMobileFeaturesBtn.addEventListener('click', () => {
+      mobileFeaturesModal.classList.remove('show');
+    });
+
+    tagSelector.addEventListener('change', function() {
+      const value = this.value;
+      if (!value || !htmlSnippets[value]) return;
+
+      openModal(value, htmlSnippets[value]);
+      this.value = '';
+    });
+
+    copySnippetBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(currentSnippet);
+        copySnippetBtn.textContent = isArabic ? 'تم النسخ' : 'Copied';
+
+        setTimeout(() => {
+          copySnippetBtn.textContent = isArabic ? 'نسخ الكود' : 'Copy Code';
+        }, 1200);
+      } catch (err) {
+        alert(isArabic ? 'تعذر النسخ' : 'Copy failed');
+      }
+    });
+
+    insertSnippetBtn.addEventListener('click', () => {
+      insertAtCursor("\n" + currentSnippet + "\n");
+      closeModal();
+    });
+
+    closeModalBtn.addEventListener('click', closeModal);
+
+    snippetModal.addEventListener('click', function(e) {
+      if (e.target === snippetModal) closeModal();
+    });
+
+    mobileFeaturesModal.addEventListener('click', function(e) {
+      if (e.target === mobileFeaturesModal) {
+        mobileFeaturesModal.classList.remove('show');
+      }
+    });
+
+    bindCssControls();
+    refreshFileSelector();
+    editor.value = files[currentFileName];
+    document.getElementById('htmlTabTitle').textContent = (isArabic ? 'المحرر: ' : 'Editor: ') + currentFileName;
+    applyPreviewIframePermissions(previewFrameRef);
+    lastSavedValue = editor.value;
+    syncHighlight();
+    updatePreview();
+    updateCursorStatus();
+    applyLanguage();
+    loadExternalMobileLibrary().then(() => {
+      refreshFileSelector();
+      if (currentFileName === 'mobile-features-lib.js') {
+        editor.value = files[currentFileName];
+        syncHighlight();
+        updateCursorStatus();
+      }
+      updatePreview();
+    });
+  </script>
+</body>
+</html>
