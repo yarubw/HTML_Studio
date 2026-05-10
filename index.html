@@ -461,6 +461,25 @@
       z-index: 3;
     }
 
+    /* When Prism (CDN) fails to load or throws, the textarea is still transparent — looks blank. Show plain text in the textarea and hide the overlay. */
+    html.editor-fallback-plain .editor-textarea {
+      color: #0f172a !important;
+      -webkit-text-fill-color: #0f172a !important;
+      caret-color: #2563eb;
+      background: #ffffff !important;
+    }
+
+    html.editor-fallback-plain body.dark-studio .editor-textarea {
+      color: #e2e8f0 !important;
+      -webkit-text-fill-color: #e2e8f0 !important;
+      caret-color: #93c5fd;
+      background: #0f172a !important;
+    }
+
+    html.editor-fallback-plain #highlightedPre {
+      display: none !important;
+    }
+
     .editor-textarea::selection {
       background: rgba(37, 99, 235, 0.2);
     }
@@ -3803,8 +3822,20 @@ self.addEventListener('fetch', (event) => {
     }
 
     function syncHighlight() {
-      highlightedCode.innerHTML = escapeHtml(editor.value) + "\n";
-      Prism.highlightElement(highlightedCode);
+      const escaped = escapeHtml(editor.value) + '\n';
+      highlightedCode.innerHTML = escaped;
+      const canPrism = typeof Prism !== 'undefined' && typeof Prism.highlightElement === 'function';
+      if (canPrism) {
+        try {
+          Prism.highlightElement(highlightedCode);
+          document.documentElement.classList.remove('editor-fallback-plain');
+        } catch (err) {
+          highlightedCode.innerHTML = escaped;
+          document.documentElement.classList.add('editor-fallback-plain');
+        }
+      } else {
+        document.documentElement.classList.add('editor-fallback-plain');
+      }
       updateLineNumbersGutter();
     }
 
@@ -9892,6 +9923,12 @@ document.getElementById("restartBtn").addEventListener("click", function(){
         updateCursorStatus();
       }
       updatePreview();
+    });
+
+    /* Prism is loaded from CDN after our inline script is parsed; Rocket Loader / Workers can defer it. Re-run highlight once everything is available. */
+    window.addEventListener('load', function () {
+      syncHighlight();
+      updateCursorStatus();
     });
   </script>
 </body>
