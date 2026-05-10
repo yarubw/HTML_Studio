@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="editor-prism-off">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Yarub HTML Playground</title>
 
   <link rel="icon" type="image/png" href="yarub-logo.png" />
+  <link rel="stylesheet" href="vendor/prism/prism.min.css" />
   <style>
     * { box-sizing: border-box; }
 
@@ -274,7 +275,12 @@
       background: #1e293b;
       border-color: #475569;
     }
-    body.dark-studio .editor-textarea {
+    /* Overlay mode: caret only (colored text comes from Prism layer under the textarea). */
+    html:not(.editor-prism-off) body.dark-studio .editor-textarea {
+      caret-color: #f1f5f9;
+    }
+    /* Plain fallback when Prism is off: readable textarea in dark mode. */
+    html.editor-prism-off body.dark-studio .editor-textarea {
       color: #e2e8f0 !important;
       -webkit-text-fill-color: #e2e8f0 !important;
       caret-color: #f1f5f9;
@@ -454,7 +460,7 @@
       letter-spacing: inherit !important;
     }
 
-    /* Always-visible code (no Prism overlay): transparent textarea + highlight layer failed on some hosts (e.g. workers.dev). */
+    /* Syntax colors: Prism <pre> under a transparent textarea (see html.editor-prism-off for fallback). */
     .editor-textarea {
       position: absolute;
       top: 0;
@@ -464,15 +470,26 @@
       resize: none;
       border: none;
       outline: none;
-      background: #ffffff;
-      color: #0f172a;
-      caret-color: #2563eb;
+      background: transparent;
+      color: transparent;
+      caret-color: #111827;
       z-index: 3;
-      -webkit-text-fill-color: #0f172a;
+      -webkit-text-fill-color: transparent;
     }
 
-    #highlightedPre {
+    html.editor-prism-off .editor-textarea {
+      color: #0f172a !important;
+      -webkit-text-fill-color: #0f172a !important;
+      caret-color: #2563eb;
+      background: #ffffff !important;
+    }
+
+    html.editor-prism-off #highlightedPre {
       display: none !important;
+    }
+
+    #editor {
+      z-index: 3;
     }
 
     .editor-textarea::selection {
@@ -1844,7 +1861,7 @@
     }
   </style>
 </head>
-<body class="student-simple">
+<body class="student-simple show-line-numbers">
   <div class="app-shell" id="appShell">
   <div class="topbar">
     <button id="menuToggleBtn" class="menu-toggle" aria-label="Toggle menu">☰</button>
@@ -2567,6 +2584,8 @@
     برمجة وتصميم م. يعرب وحشة - مدرسة ابن تيمية الثانوية الشاملة للبنين
   </div>
 
+  <script src="vendor/prism/prism.min.js" data-cfasync="false"></script>
+  <script src="vendor/prism/prism-markup.min.js" data-cfasync="false"></script>
   <script data-cfasync="false">
     /* Load JSZip only when exporting/importing ZIP so a missing vendor file cannot block the whole app. */
     var jszipLoadPromise = null;
@@ -2588,11 +2607,6 @@
     }
 
     const editor = document.getElementById('editor');
-    console.log('[HTML Studio] main script running', {
-      href: location.href,
-      editorFound: !!editor,
-      editorLen: editor ? editor.value.length : 0
-    });
     const highlightedCode = document.getElementById('highlightedCode');
     const highlightedPre = document.getElementById('highlightedPre');
     const container = document.getElementById('container');
@@ -3853,6 +3867,21 @@ self.addEventListener('fetch', (event) => {
     }
 
     function syncHighlight() {
+      const escaped = escapeHtml(editor.value) + '\n';
+      highlightedCode.innerHTML = escaped;
+      let prismOk = false;
+      if (typeof Prism !== 'undefined' && typeof Prism.highlightElement === 'function') {
+        try {
+          Prism.highlightElement(highlightedCode);
+          const hasSource = editor.value.trim().length > 0;
+          const hasTokens = !!highlightedCode.querySelector('.token');
+          prismOk = !hasSource || hasTokens;
+        } catch (err) {
+          prismOk = false;
+          highlightedCode.innerHTML = escaped;
+        }
+      }
+      document.documentElement.classList.toggle('editor-prism-off', !prismOk);
       updateLineNumbersGutter();
     }
 
@@ -9906,7 +9935,11 @@ document.getElementById("restartBtn").addEventListener("click", function(){
 
     try {
       if (localStorage.getItem('htmlStudio.darkMode') === '1') document.body.classList.add('dark-studio');
-      if (localStorage.getItem('htmlStudio.lineNumbers') === '1') document.body.classList.add('show-line-numbers');
+      if (localStorage.getItem('htmlStudio.lineNumbers') === '0') {
+        document.body.classList.remove('show-line-numbers');
+      } else {
+        document.body.classList.add('show-line-numbers');
+      }
     } catch (_) {}
 
     bindCssControls();
@@ -9926,11 +9959,6 @@ document.getElementById("restartBtn").addEventListener("click", function(){
     updatePreview();
     updateCursorStatus();
     applyLanguage();
-    console.log('[HTML Studio] init complete', {
-      currentFile: currentFileName,
-      editorChars: editor.value.length,
-      fileKeys: Object.keys(files).length
-    });
     loadExternalMobileLibrary().then(() => {
       refreshFileSelector();
       if (currentFileName === 'mobile-features-lib.js') {
@@ -9939,9 +9967,10 @@ document.getElementById("restartBtn").addEventListener("click", function(){
         updateCursorStatus();
       }
       updatePreview();
-      console.log('[HTML Studio] mobile library fetch finished', {
-        mobileLibChars: (files['mobile-features-lib.js'] && files['mobile-features-lib.js'].length) || 0
-      });
+    });
+
+    window.addEventListener('load', function () {
+      syncHighlight();
     });
   </script>
 </body>
