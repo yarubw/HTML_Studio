@@ -1,13 +1,11 @@
 <!doctype html>
-<!-- editor-fallback-plain: readable textarea until Prism actually renders tokens (avoids blank editor on CDN/Worker edge cases). -->
-<html lang="ar" dir="rtl" class="editor-fallback-plain">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Yarub HTML Playground</title>
 
   <link rel="icon" type="image/png" href="yarub-logo.png" />
-  <link href="vendor/prism/prism.min.css" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
 
@@ -278,7 +276,10 @@
       border-color: #475569;
     }
     body.dark-studio .editor-textarea {
+      color: #e2e8f0 !important;
+      -webkit-text-fill-color: #e2e8f0 !important;
       caret-color: #f1f5f9;
+      background: #0f172a !important;
     }
 
     .legacy-hidden-tools {
@@ -442,6 +443,7 @@
       letter-spacing: inherit !important;
     }
 
+    /* Always-visible code (no Prism overlay): transparent textarea + highlight layer failed on some hosts (e.g. workers.dev). */
     .editor-textarea {
       position: absolute;
       top: 0;
@@ -451,33 +453,14 @@
       resize: none;
       border: none;
       outline: none;
-      background: transparent;
-      color: transparent;
-      caret-color: #000;
-      z-index: 2;
-      -webkit-text-fill-color: transparent;
-    }
-
-    #editor {
-      z-index: 3;
-    }
-
-    /* When Prism (CDN) fails to load or throws, the textarea is still transparent — looks blank. Show plain text in the textarea and hide the overlay. */
-    html.editor-fallback-plain .editor-textarea {
-      color: #0f172a !important;
-      -webkit-text-fill-color: #0f172a !important;
+      background: #ffffff;
+      color: #0f172a;
       caret-color: #2563eb;
-      background: #ffffff !important;
+      z-index: 3;
+      -webkit-text-fill-color: #0f172a;
     }
 
-    html.editor-fallback-plain body.dark-studio .editor-textarea {
-      color: #e2e8f0 !important;
-      -webkit-text-fill-color: #e2e8f0 !important;
-      caret-color: #93c5fd;
-      background: #0f172a !important;
-    }
-
-    html.editor-fallback-plain #highlightedPre {
+    #highlightedPre {
       display: none !important;
     }
 
@@ -2557,9 +2540,6 @@
     برمجة وتصميم م. يعرب وحشة - مدرسة ابن تيمية الثانوية الشاملة للبنين
   </div>
 
-  <!-- Same-origin vendor files (no CDN): avoids blank editor when third-party scripts fail on Workers. -->
-  <script src="vendor/prism/prism.min.js" data-cfasync="false"></script>
-  <script src="vendor/prism/prism-markup.min.js" data-cfasync="false"></script>
   <script src="vendor/jszip.min.js" data-cfasync="false"></script>
   <script data-cfasync="false">
     const editor = document.getElementById('editor');
@@ -3823,27 +3803,6 @@ self.addEventListener('fetch', (event) => {
     }
 
     function syncHighlight() {
-      const escaped = escapeHtml(editor.value) + '\n';
-      highlightedCode.innerHTML = escaped;
-      const canPrism = typeof Prism !== 'undefined' && typeof Prism.highlightElement === 'function';
-      if (canPrism) {
-        try {
-          Prism.highlightElement(highlightedCode);
-          const hasSource = editor.value.trim().length > 0;
-          const hasTokens = !!highlightedCode.querySelector('.token');
-          /* Only switch to transparent overlay when highlighting clearly worked; else keep plain visible text. */
-          if (!hasSource || hasTokens) {
-            document.documentElement.classList.remove('editor-fallback-plain');
-          } else {
-            document.documentElement.classList.add('editor-fallback-plain');
-          }
-        } catch (err) {
-          highlightedCode.innerHTML = escaped;
-          document.documentElement.classList.add('editor-fallback-plain');
-        }
-      } else {
-        document.documentElement.classList.add('editor-fallback-plain');
-      }
       updateLineNumbersGutter();
     }
 
@@ -9931,12 +9890,6 @@ document.getElementById("restartBtn").addEventListener("click", function(){
         updateCursorStatus();
       }
       updatePreview();
-    });
-
-    /* Prism is loaded from CDN after our inline script is parsed; Rocket Loader / Workers can defer it. Re-run highlight once everything is available. */
-    window.addEventListener('load', function () {
-      syncHighlight();
-      updateCursorStatus();
     });
   </script>
 </body>
