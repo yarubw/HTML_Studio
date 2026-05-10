@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Simple HTML Playground</title>
+  <title>Yarub HTML Playground</title>
 
+  <link rel="icon" type="image/png" href="yarub-logo.png" />
   <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
@@ -290,6 +291,27 @@
 
     .spacer { flex: 1; }
 
+    .app-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-inline-end: 12px;
+      flex-shrink: 0;
+    }
+    .app-logo {
+      height: 40px;
+      width: auto;
+      max-width: min(200px, 28vw);
+      object-fit: contain;
+      object-position: center;
+      flex-shrink: 0;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+    }
+    body.student-simple .app-logo {
+      height: 44px;
+      max-width: min(220px, 32vw);
+    }
+
     /* Calmer layout for classrooms: fewer tools, larger controls */
     body.student-simple .topbar {
       background: #334155;
@@ -308,7 +330,6 @@
     body.student-simple #gameBuilderBtn,
     body.student-simple #apiBtn,
     body.student-simple #consoleBtn,
-    body.student-simple #mobileFeaturesBtn,
     body.student-simple #backendSelector,
     body.student-simple #menuLayoutSelector {
       display: none !important;
@@ -877,12 +898,20 @@
     }
 
     .app-shell.menu-side .topbar .spacer { display: none; }
-    .app-shell.menu-side #titleText {
+    .app-shell.menu-side #appBrand {
       order: -1;
-      font-weight: 700;
-      padding: 4px 0 8px;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 4px 0 10px;
       border-bottom: 1px solid #374151;
       margin-bottom: 6px;
+      margin-inline-end: 0;
+    }
+    .app-shell.menu-side .app-logo {
+      max-width: 100%;
+      height: auto;
+      max-height: 72px;
     }
 
     @media (max-width: 768px) {
@@ -1599,7 +1628,9 @@
   <div class="app-shell" id="appShell">
   <div class="topbar">
     <button id="menuToggleBtn" class="menu-toggle" aria-label="Toggle menu">☰</button>
-    <span id="titleText" style="font-weight:700;margin-inline-end:12px;">Simple HTML Playground</span>
+    <div class="app-brand" id="appBrand">
+      <img class="app-logo" id="appLogoImg" src="yarub-logo.png" width="1024" height="559" alt="Yarub HTML Editor logo" decoding="async" />
+    </div>
     <div class="topbar-items" id="topbarItems">
     <nav class="menubar" id="menubar" aria-label="Main menu">
       <div class="menu-root">
@@ -1608,9 +1639,9 @@
           <button type="button" class="menu-panel-btn" id="menuFileNew">New file</button>
           <button type="button" class="menu-panel-btn" id="menuFileDelete">Delete file</button>
           <button type="button" class="menu-panel-btn" id="menuFileSaveJson">Save project (JSON)</button>
-          <button type="button" class="menu-panel-btn" id="menuFileExportAll">Export project (all files)</button>
-          <button type="button" class="menu-panel-btn" id="menuFileLoad">Load project…</button>
-          <input type="file" id="loadFile" accept=".html,.txt,.css,.js,.json" hidden>
+          <button type="button" class="menu-panel-btn" id="menuFileExportAll">Export project (ZIP)</button>
+          <button type="button" class="menu-panel-btn" id="menuFileLoad">Load project (JSON or ZIP)…</button>
+          <input type="file" id="loadFile" accept=".html,.txt,.css,.js,.json,.zip,application/zip" hidden>
         </div>
       </div>
       <div class="menu-root">
@@ -1663,12 +1694,6 @@
         <button type="button" class="menu-bar-btn" id="menuBarCss" data-menu-root="css" aria-expanded="false" aria-haspopup="true">CSS</button>
         <div class="menu-panel" id="menuPanelCss" hidden>
           <button type="button" class="menu-panel-btn" id="menuCssSelectMode">Select element in preview</button>
-          <div class="menu-panel-hint" id="menuCssMobileHint">Insert a mobile / device code snippet:</div>
-          <div class="menu-panel-select-wrap">
-            <select id="cssMobileSnippetSelect" aria-label="Mobile feature snippets">
-              <option value="">Mobile snippets…</option>
-            </select>
-          </div>
         </div>
       </div>
       <div class="menu-root">
@@ -1711,6 +1736,8 @@
     <label for="imageUploadInput" id="imageUploadLabel">Upload Media (Image/Video/Audio)</label>
     <input type="file" id="imageUploadInput" accept="image/*,video/*,audio/*" multiple>
 
+    <button type="button" id="mobileFeaturesBtn">Mobile Features</button>
+
     <div class="legacy-hidden-tools" aria-hidden="true">
       <select id="menuLayoutSelector" title="Insert site navigation (side or top menu)">
         <option value="">Site menus</option>
@@ -1720,7 +1747,6 @@
       </select>
       <button type="button" id="apiBtn">API Tester</button>
       <button type="button" id="gameBuilderBtn">Game Builder</button>
-      <button type="button" id="mobileFeaturesBtn">Mobile Features</button>
       <button type="button" id="consoleBtn">Console</button>
     </div>
 
@@ -2206,6 +2232,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script>
     const editor = document.getElementById('editor');
     const highlightedCode = document.getElementById('highlightedCode');
@@ -2228,7 +2255,6 @@
     const lineGutter = document.getElementById('lineGutter');
     const viewLayoutSelect = document.getElementById('view');
     const menuCssSelectMode = document.getElementById('menuCssSelectMode');
-    const cssMobileSnippetSelect = document.getElementById('cssMobileSnippetSelect');
     const imageUploadInput = document.getElementById('imageUploadInput');
     const stylePanel = document.getElementById('stylePanel');
     const selectedElementInfo = document.getElementById('selectedElementInfo');
@@ -3604,12 +3630,161 @@ self.addEventListener('fetch', (event) => {
       return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
     }
 
+    function isZipNoisePath(relativePath) {
+      const n = String(relativePath || '').replace(/\\/g, '/');
+      return n.includes('__MACOSX/') || /(^|\/)\.DS_Store$/i.test(n);
+    }
+
+    function normalizeZipEntryKey(relativePath) {
+      return String(relativePath || '').replace(/\\/g, '/').replace(/^\.\/+/, '').replace(/^\/+/, '');
+    }
+
+    function zipEntryBasenameLower(relativePath) {
+      const norm = normalizeZipEntryKey(relativePath);
+      const seg = norm.split('/');
+      return (seg[seg.length - 1] || '').toLowerCase();
+    }
+
+    function findZipEntryByBasename(zip, basenameLower) {
+      let best = null;
+      let bestDepth = Infinity;
+      zip.forEach((relativePath, entry) => {
+        if (entry.dir || isZipNoisePath(relativePath)) return;
+        if (zipEntryBasenameLower(relativePath) !== basenameLower) return;
+        const depth = normalizeZipEntryKey(relativePath).split('/').length;
+        if (depth < bestDepth) {
+          bestDepth = depth;
+          best = { relativePath, entry };
+        }
+      });
+      return best;
+    }
+
+    function findZipEntryByNormalizedPath(zip, wantNorm) {
+      let found = null;
+      zip.forEach((relativePath, entry) => {
+        if (found || entry.dir || isZipNoisePath(relativePath)) return;
+        if (normalizeZipEntryKey(relativePath) === wantNorm) found = { relativePath, entry };
+      });
+      return found;
+    }
+
+    function isZipTextishFilename(filename) {
+      return /\.(html?|css|js|mjs|json|txt|md|svg|xml|map|csv)$/i.test(String(filename || ''));
+    }
+
+    function arrayBufferToDataUrl(ab, mime) {
+      return new Promise((resolve, reject) => {
+        const blob = new Blob([ab], { type: mime || 'application/octet-stream' });
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = () => reject(fr.error || new Error('read'));
+        fr.readAsDataURL(blob);
+      });
+    }
+
+    async function readZipEntryAsProjectValue(entry, relativePath) {
+      const base = normalizeZipEntryKey(relativePath).split('/').pop() || '';
+      if (isZipTextishFilename(base)) {
+        try {
+          return await entry.async('string');
+        } catch (_) {}
+      }
+      const buf = await entry.async('arraybuffer');
+      return await arrayBufferToDataUrl(buf, mimeForExportFile(base));
+    }
+
+    function applyProjectFromParsed(parsed) {
+      if (!parsed || typeof parsed !== 'object' || parsed.files == null || typeof parsed.files !== 'object') {
+        throw new Error('Invalid project file');
+      }
+      files = parsed.files;
+      const fk = Object.keys(files);
+      if (!fk.length) throw new Error('Invalid project file');
+      currentFileName = parsed.currentFileName && Object.prototype.hasOwnProperty.call(files, parsed.currentFileName)
+        ? parsed.currentFileName
+        : (fk.find(k => k.toLowerCase().endsWith('.html')) || fk[0]);
+      loadFileIntoEditor(currentFileName, { skipSave: true });
+    }
+
+    async function loadProjectFromZipFile(file) {
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+
+      const pj = findZipEntryByBasename(zip, 'project.json');
+      if (pj) {
+        const text = await pj.entry.async('string');
+        applyProjectFromParsed(JSON.parse(text));
+        return;
+      }
+
+      let manifest = null;
+      const manifestHit = findZipEntryByBasename(zip, 'project-manifest.json');
+      if (manifestHit) {
+        try {
+          manifest = JSON.parse(await manifestHit.entry.async('string'));
+        } catch (_) {}
+      }
+
+      const nextFiles = {};
+      const manifestKeys = manifest && Array.isArray(manifest.files)
+        ? manifest.files.filter(k => k && String(k).trim())
+        : null;
+
+      if (manifestKeys && manifestKeys.length) {
+        for (const key of manifestKeys) {
+          const want = normalizeZipEntryKey(key);
+          let hit = findZipEntryByNormalizedPath(zip, want);
+          if (!hit) {
+            const base = want.split('/').pop().toLowerCase();
+            hit = findZipEntryByBasename(zip, base);
+          }
+          if (!hit) continue;
+          nextFiles[key] = await readZipEntryAsProjectValue(hit.entry, hit.relativePath);
+        }
+      } else {
+        const pending = [];
+        zip.forEach((relativePath, entry) => {
+          if (entry.dir || isZipNoisePath(relativePath)) return;
+          pending.push({ relativePath, entry });
+        });
+        for (const { relativePath, entry } of pending) {
+          const key = normalizeZipEntryKey(relativePath);
+          nextFiles[key] = await readZipEntryAsProjectValue(entry, relativePath);
+        }
+      }
+
+      const keys = Object.keys(nextFiles);
+      if (!keys.length) throw new Error('Empty zip');
+
+      files = nextFiles;
+      currentFileName = manifest && manifest.currentFileName && Object.prototype.hasOwnProperty.call(files, manifest.currentFileName)
+        ? manifest.currentFileName
+        : (keys.find(k => k.toLowerCase().endsWith('.html')) || keys[0]);
+      loadFileIntoEditor(currentFileName, { skipSave: true });
+    }
+
     function mimeForExportFile(name) {
       const lower = String(name || '').toLowerCase();
-      if (lower.endsWith('.html')) return 'text/html';
+      if (lower.endsWith('.html') || lower.endsWith('.htm')) return 'text/html';
       if (lower.endsWith('.css')) return 'text/css';
-      if (lower.endsWith('.js')) return 'text/javascript';
+      if (lower.endsWith('.js') || lower.endsWith('.mjs')) return 'text/javascript';
       if (lower.endsWith('.json')) return 'application/json';
+      if (lower.endsWith('.svg')) return 'image/svg+xml';
+      if (lower.endsWith('.png')) return 'image/png';
+      if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+      if (lower.endsWith('.gif')) return 'image/gif';
+      if (lower.endsWith('.webp')) return 'image/webp';
+      if (lower.endsWith('.ico')) return 'image/x-icon';
+      if (lower.endsWith('.mp3')) return 'audio/mpeg';
+      if (lower.endsWith('.wav')) return 'audio/wav';
+      if (lower.endsWith('.m4a')) return 'audio/mp4';
+      if (lower.endsWith('.aac')) return 'audio/aac';
+      if (lower.endsWith('.flac')) return 'audio/flac';
+      if (lower.endsWith('.mp4')) return 'video/mp4';
+      if (lower.endsWith('.webm')) return 'video/webm';
+      if (lower.endsWith('.ogg')) return 'video/ogg';
+      if (lower.endsWith('.mov')) return 'video/quicktime';
+      if (lower.endsWith('.m4v')) return 'video/x-m4v';
       return 'text/plain';
     }
 
@@ -3619,12 +3794,6 @@ self.addEventListener('fetch', (event) => {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(a.href);
-    }
-
-    async function downloadDataUrlAsExportFile(dataUrl, filename) {
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      downloadBlobFile(blob, filename);
     }
 
     function prepareProjectSaveState() {
@@ -3647,19 +3816,25 @@ self.addEventListener('fetch', (event) => {
     async function exportProjectAllFiles() {
       prepareProjectSaveState();
       try {
-        const entries = Object.entries(files);
-        for (const [name, content] of entries) {
+        if (typeof JSZip === 'undefined') {
+          alert(isArabic ? 'دعم ZIP غير متوفر (المكتبة غير محمّلة).' : 'ZIP export is not available (library missing).');
+          return;
+        }
+        const zip = new JSZip();
+        for (const [name, content] of Object.entries(files)) {
           if (typeof content !== 'string') continue;
+          if (name.toLowerCase().endsWith('.json')) continue;
           if (isMediaFile(name) && content.startsWith('data:')) {
-            await downloadDataUrlAsExportFile(content, name);
+            const res = await fetch(content);
+            zip.file(name, await res.arrayBuffer());
           } else {
-            downloadBlobFile(new Blob([content], { type: mimeForExportFile(name) }), name);
+            zip.file(name, content);
           }
         }
-        const manifest = { currentFileName, files: Object.keys(files) };
-        downloadBlobFile(new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' }), 'project-manifest.json');
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        downloadBlobFile(blob, 'project.zip');
       } catch (_) {
-        alert(isArabic ? 'تعذر تصدير الملفات' : 'Failed to export files');
+        alert(isArabic ? 'تعذر تصدير المشروع' : 'Failed to export project');
       }
     }
 
@@ -3899,23 +4074,32 @@ self.addEventListener('fetch', (event) => {
       fileSelector.value = currentFileName;
     }
 
-    function loadFileIntoEditor(fileName) {
+    function loadFileIntoEditor(fileName, opts) {
       if (!Object.prototype.hasOwnProperty.call(files, fileName)) return;
-      saveCurrentFileContent();
+      const skipSave = opts && opts.skipSave;
+      if (!skipSave) saveCurrentFileContent();
       currentFileName = fileName;
       if (isMediaFile(currentFileName)) {
         isViewingAssetFile = true;
         editor.readOnly = true;
         const raw = files[currentFileName] || '';
         const sizeKb = Math.round((raw.length * 0.75) / 1024);
-        editor.value = `/* Image asset file */
+        const kind = getAssetKind(currentFileName);
+        const mimeHint = raw.startsWith('data:') ? raw.slice(5, raw.indexOf(';')) : '(file text or data URL)';
+        const usageHint =
+          kind === 'image'
+            ? `<img src="${currentFileName}" alt="${currentFileName}">`
+            : kind === 'audio'
+              ? `<audio controls><source src="${currentFileName}" type="audio/mpeg"></audio>`
+              : `<video controls width="400"><source src="${currentFileName}" type="video/mp4"></video>`;
+        editor.value = `/* ${kind === 'image' ? 'Image' : kind === 'audio' ? 'Audio' : 'Video'} asset */
 Name: ${currentFileName}
-Type: ${raw.slice(5, raw.indexOf(';')) || getAssetKind(currentFileName)}
+Type: ${mimeHint}
 Approx size: ${sizeKb} KB
 
-This is a binary image stored as data URL.
-Use it in HTML:
-<img src="${currentFileName}" alt="${currentFileName}">`;
+Stored in the project as text (usually a data URL). Included when you save JSON or export all files.
+Use in HTML:
+${usageHint}`;
       } else {
         isViewingAssetFile = false;
         editor.readOnly = false;
@@ -4193,44 +4377,6 @@ Use it in HTML:
       });
     }
 
-    function buildCssMobileSnippetSelect() {
-      if (!cssMobileSnippetSelect) return;
-      const cur = cssMobileSnippetSelect.value;
-      cssMobileSnippetSelect.innerHTML = '';
-      const ph = document.createElement('option');
-      ph.value = '';
-      ph.textContent = isArabic ? 'إدراج ميزة جوال…' : 'Insert mobile feature…';
-      cssMobileSnippetSelect.appendChild(ph);
-      mobileSnippetSections.forEach(function (sec) {
-        sec.items.forEach(function (item) {
-          const opt = document.createElement('option');
-          opt.value = sec.id + '|' + item.id;
-          opt.textContent = isArabic ? item.titleAr : item.titleEn;
-          cssMobileSnippetSelect.appendChild(opt);
-        });
-      });
-      if (cur && Array.from(cssMobileSnippetSelect.options).some(function (o) { return o.value === cur; })) {
-        cssMobileSnippetSelect.value = cur;
-      }
-    }
-
-    if (cssMobileSnippetSelect) {
-      cssMobileSnippetSelect.addEventListener('change', function () {
-        const v = this.value;
-        if (!v) return;
-        const bar = v.indexOf('|');
-        const secId = bar === -1 ? v : v.slice(0, bar);
-        const itemId = bar === -1 ? '' : v.slice(bar + 1);
-        const section = mobileSnippetSections.find(function (s) { return s.id === secId; });
-        const item = section && section.items.find(function (it) { return it.id === itemId; });
-        if (item) {
-          insertAtCursor('\n' + normalizeSnippetCode(item.code) + '\n');
-        }
-        closeAllMenus();
-        this.value = '';
-      });
-    }
-
     function updateEditorFromPreviewSelection(prop, value) {
       if (!selectedPreviewElement) return;
 
@@ -4355,7 +4501,11 @@ Use it in HTML:
       document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
       document.documentElement.lang = isArabic ? 'ar' : 'en';
 
-      document.getElementById('titleText').textContent = isArabic ? 'محرر يعرب للغة HTML' : 'Yarub HTML Playground';
+      document.title = isArabic ? 'محرر يعرب للغة HTML' : 'Yarub HTML Playground';
+      const logoImg = document.getElementById('appLogoImg');
+      if (logoImg) {
+        logoImg.alt = isArabic ? 'محرر يعرب للغة HTML' : 'Yarub HTML Editor';
+      }
       document.getElementById('htmlTabTitle').textContent = (isArabic ? 'المحرر: ' : 'Editor: ') + currentFileName;
       document.getElementById('viewTabTitle').textContent = isArabic ? 'المعاينة' : 'Preview';
       document.getElementById('imageUploadLabel').textContent = isArabic ? 'رفع وسائط' : 'Upload Media';
@@ -4377,16 +4527,13 @@ Use it in HTML:
       document.getElementById('menuFileNew').textContent = isArabic ? 'ملف جديد' : 'New file';
       document.getElementById('menuFileDelete').textContent = isArabic ? 'حذف الملف' : 'Delete file';
       document.getElementById('menuFileSaveJson').textContent = isArabic ? 'حفظ المشروع (JSON)' : 'Save project (JSON)';
-      document.getElementById('menuFileExportAll').textContent = isArabic ? 'تصدير المشروع (كل الملفات)' : 'Export project (all files)';
-      document.getElementById('menuFileLoad').textContent = isArabic ? 'تحميل مشروع…' : 'Load project…';
+      document.getElementById('menuFileExportAll').textContent = isArabic ? 'تصدير المشروع (ZIP)' : 'Export project (ZIP)';
+      document.getElementById('menuFileLoad').textContent = isArabic ? 'تحميل مشروع (JSON أو ZIP)…' : 'Load project (JSON or ZIP)…';
       document.getElementById('menuHtmlTagsHint').textContent = isArabic
         ? 'اختر وسمًا لمعاينة الكود ثم أدرجه من النافذة.'
         : 'Pick a tag to preview the code, then insert from the dialog.';
       document.getElementById('menuHtmlFormsTitle').textContent = isArabic ? 'نماذج' : 'Forms';
       document.getElementById('menuHtmlSamples').textContent = isArabic ? 'صفحات جاهزة' : 'Sample pages';
-      document.getElementById('menuCssMobileHint').textContent = isArabic
-        ? 'أدرج مقطع كود للجوال أو الجهاز:'
-        : 'Insert a mobile / device code snippet:';
       document.getElementById('menuOptFormat').textContent = isArabic ? 'تنسيق الكود' : 'Format code';
       document.getElementById('menuOptDark').textContent = isArabic ? 'الوضع الداكن للموقع' : 'Dark website mode';
       document.getElementById('menuOptLines').textContent = isArabic ? 'إظهار أرقام الأسطر' : 'Show line numbers';
@@ -4455,7 +4602,6 @@ Use it in HTML:
       if (optDark) optDark.setAttribute('aria-pressed', darkOn ? 'true' : 'false');
       if (optLines) optLines.setAttribute('aria-pressed', linesOn ? 'true' : 'false');
 
-      buildCssMobileSnippetSelect();
       applyMenuPosition();
     }
 
@@ -4674,30 +4820,48 @@ Use it in HTML:
       resetSelectionState(true);
     });
 
-    document.getElementById('loadFile').addEventListener('change', function(e) {
-      const file = e.target.files[0];
+    document.getElementById('loadFile').addEventListener('change', async function(e) {
+      const input = e.target;
+      const file = input.files[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target.result;
-        if (file.name.toLowerCase().endsWith('.json')) {
-          try {
-            const parsed = JSON.parse(text);
-            if (!parsed || typeof parsed !== 'object' || !parsed.files) throw new Error('Invalid project file');
-            files = parsed.files;
-            currentFileName = parsed.currentFileName && Object.prototype.hasOwnProperty.call(files, parsed.currentFileName)
-              ? parsed.currentFileName
-              : Object.keys(files)[0];
-            editor.value = files[currentFileName] || '';
-            refreshFileSelector();
-          } catch (error) {
-            alert(isArabic ? 'ملف المشروع غير صالح' : 'Invalid project file');
+      const failInvalidProject = () => {
+        alert(isArabic ? 'ملف المشروع غير صالح' : 'Invalid project file');
+      };
+      const failLoad = () => {
+        alert(isArabic ? 'تعذر تحميل الملف' : 'Could not load file');
+      };
+
+      try {
+        const nameLower = file.name.toLowerCase();
+
+        if (nameLower.endsWith('.zip')) {
+          if (typeof JSZip === 'undefined') {
+            alert(isArabic ? 'دعم ZIP غير متوفر (المكتبة غير محمّلة).' : 'ZIP support is not available (library missing).');
+            input.value = '';
             return;
           }
-        } else if (!isMediaFile(currentFileName)) {
-          files[currentFileName] = text;
-          editor.value = text;
+          await loadProjectFromZipFile(file);
+        } else {
+          const text = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error || new Error('read'));
+            reader.readAsText(file);
+          });
+
+          if (nameLower.endsWith('.json')) {
+            try {
+              applyProjectFromParsed(JSON.parse(text));
+            } catch (_) {
+              failInvalidProject();
+              input.value = '';
+              return;
+            }
+          } else if (!isMediaFile(currentFileName)) {
+            files[currentFileName] = text;
+            editor.value = text;
+          }
         }
 
         historyStack = [];
@@ -4706,8 +4870,12 @@ Use it in HTML:
         syncHighlight();
         updateCursorStatus();
         updatePreview();
-      };
-      reader.readAsText(file);
+      } catch (err) {
+        console.error(err);
+        failLoad();
+      }
+
+      input.value = '';
     });
 
     function escapeHtmlAttr(value) {
