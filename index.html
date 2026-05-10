@@ -6,7 +6,7 @@
   <title>Yarub HTML Playground</title>
 
   <link rel="icon" type="image/png" href="yarub-logo.png" />
-  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+  <link href="./vendor/prism/prism.min.css" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
 
@@ -2556,10 +2556,10 @@
     برمجة وتصميم م. يعرب وحشة - مدرسة ابن تيمية الثانوية الشاملة للبنين
   </div>
 
-  <!-- data-cfasync="false" keeps Cloudflare Rocket Loader from deferring these; otherwise the editor can break (no typing). -->
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js" data-cfasync="false"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js" data-cfasync="false"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" data-cfasync="false"></script>
+  <!-- Same-origin vendor files: CDN scripts are often blocked or reordered on *.workers.dev, which left the editor blank (transparent textarea + no Prism). -->
+  <script src="./vendor/prism/prism.min.js" data-cfasync="false"></script>
+  <script src="./vendor/prism/prism-markup.min.js" data-cfasync="false"></script>
+  <script src="./vendor/jszip.min.js" data-cfasync="false"></script>
   <script data-cfasync="false">
     const editor = document.getElementById('editor');
     const highlightedCode = document.getElementById('highlightedCode');
