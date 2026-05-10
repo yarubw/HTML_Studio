@@ -329,9 +329,7 @@
       min-width: 200px;
     }
     body.student-simple #gameBuilderBtn,
-    body.student-simple #apiBtn,
     body.student-simple #consoleBtn,
-    body.student-simple #backendSelector,
     body.student-simple #menuLayoutSelector {
       display: none !important;
     }
@@ -1349,14 +1347,117 @@
     /* ===== API Tester ===== */
     .api-form { display: flex; flex-direction: column; gap: 10px; }
 
-    .api-url-row {
-      display: grid;
-      grid-template-columns: 110px 1fr auto;
+    .api-toggle-curl {
+      align-self: flex-start;
+      padding: 2px 0;
+      margin: 0;
+      border: none;
+      background: none;
+      color: #2563eb;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      font-family: inherit;
+    }
+
+    .api-toggle-curl:hover {
+      color: #1d4ed8;
+    }
+
+    .api-curl-expand {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .api-curl-expand[hidden] {
+      display: none !important;
+    }
+
+    .api-curl-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .api-curl-block textarea {
+      width: 100%;
+      min-height: 56px;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+      direction: ltr;
+      text-align: left;
+      resize: vertical;
+    }
+
+    .api-curl-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .api-curl-actions button {
+      padding: 7px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #64748b;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .api-curl-actions button:hover {
+      background: #475569;
+    }
+
+    .api-method-row {
+      display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       align-items: center;
     }
 
-    .api-url-row select,
+    .api-method-btn {
+      padding: 8px 20px;
+      border: 2px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      color: #374151;
+    }
+
+    .api-method-btn.active {
+      border-color: #2563eb;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .api-url-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #apiMethod {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     .api-url-row input {
       padding: 9px 10px;
       border: 1px solid #cbd5e1;
@@ -1836,15 +1937,12 @@
     <input type="file" id="imageUploadInput" accept="image/*,video/*,audio/*" multiple>
 
     <button type="button" id="mobileFeaturesBtn">Mobile Features</button>
+    <button type="button" id="apiBtn">API</button>
 
     <div class="legacy-hidden-tools" aria-hidden="true">
       <select id="menuLayoutSelector" title="Insert site navigation (side or top menu)">
         <option value="">Site menus</option>
       </select>
-      <select id="backendSelector" title="Insert API / backend / database snippet">
-        <option value="">Backend &amp; DB</option>
-      </select>
-      <button type="button" id="apiBtn">API Tester</button>
       <button type="button" id="gameBuilderBtn">Game Builder</button>
       <button type="button" id="consoleBtn">Console</button>
     </div>
@@ -2194,33 +2292,51 @@
         <button id="closeApiBtn">Close</button>
       </div>
       <div class="modal-body">
-        <p id="apiIntro" class="api-hint" style="margin-bottom:10px;">
-          Send HTTP requests from the browser. Some servers will reject cross-origin requests (CORS) — use a public API or a server that allows it.
+        <p id="apiIntro" class="api-hint" style="margin-bottom:8px;">
+          Enter a URL, optional parameters, then Send. Some sites block cross-origin requests (CORS).
         </p>
         <div class="api-form">
-          <div class="api-url-row">
-            <select id="apiMethod">
-              <option>GET</option>
-              <option>POST</option>
-              <option>PUT</option>
-              <option>PATCH</option>
-              <option>DELETE</option>
-              <option>HEAD</option>
-              <option>OPTIONS</option>
+          <button type="button" class="api-toggle-curl" id="apiToggleCurlBtn">Use cURL</button>
+          <div id="apiCurlExpand" class="api-curl-expand" hidden>
+            <div class="api-curl-block">
+              <label for="apiCurlPaste" id="apiCurlLabel">Paste cURL (or a URL)</label>
+              <textarea id="apiCurlPaste" placeholder="curl -X POST https://api.example.com/items -H &quot;Content-Type: application/json&quot; -d '{&quot;name&quot;:&quot;test&quot;}'"></textarea>
+              <div class="api-curl-actions">
+                <button type="button" id="apiParseCurlBtn">Apply to form</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="api-method-row">
+            <span id="apiMethodLabel">Method</span>
+            <button type="button" class="api-method-btn active" id="apiMethodGetBtn">GET</button>
+            <button type="button" class="api-method-btn" id="apiMethodPostBtn">POST</button>
+            <select id="apiMethod" aria-hidden="true" tabindex="-1">
+              <option value="GET" selected>GET</option>
+              <option value="POST">POST</option>
             </select>
-            <input id="apiUrl" type="text" placeholder="https://api.example.com/users" autocomplete="off">
+          </div>
+
+          <div class="api-url-row">
+            <input id="apiUrl" type="text" placeholder="https://api.example.com/users" autocomplete="off" dir="ltr">
             <button id="apiSendBtn" type="button">Send</button>
           </div>
 
           <div class="api-tabs">
-            <button class="api-tab active" type="button" data-pane="apiPaneHeaders" id="apiTabHeaders">Headers</button>
+            <button class="api-tab active" type="button" data-pane="apiPaneParams" id="apiTabParams">Params</button>
+            <button class="api-tab" type="button" data-pane="apiPaneHeaders" id="apiTabHeaders">Headers</button>
             <button class="api-tab" type="button" data-pane="apiPaneBody" id="apiTabBody">Body</button>
             <button class="api-tab" type="button" data-pane="apiPaneAuth" id="apiTabAuth">Auth</button>
             <button class="api-tab" type="button" data-pane="apiPaneResponse" id="apiTabResponse">Response</button>
             <button class="api-tab" type="button" data-pane="apiPaneHistory" id="apiTabHistory">History</button>
           </div>
 
-          <div class="api-pane active" id="apiPaneHeaders">
+          <div class="api-pane active" id="apiPaneParams">
+            <p class="api-hint" id="apiParamsHint">Optional: one <code>name=value</code> per line. Added to the URL when you Send.</p>
+            <textarea id="apiQueryParams" placeholder="page=1&#10;limit=10" dir="ltr"></textarea>
+          </div>
+
+          <div class="api-pane" id="apiPaneHeaders">
             <p class="api-hint" id="apiHeadersHint">One header per line, format: <code>Key: Value</code></p>
             <textarea id="apiHeaders" placeholder="Accept: application/json&#10;Content-Type: application/json"></textarea>
           </div>
@@ -2235,7 +2351,7 @@
               </select>
             </label>
             <textarea id="apiBody" placeholder='{ "name": "Yarub", "role": "teacher" }'></textarea>
-            <p class="api-hint" id="apiBodyHint">Body is ignored for GET / HEAD.</p>
+            <p class="api-hint" id="apiBodyHint">Body is only used for POST.</p>
           </div>
 
           <div class="api-pane" id="apiPaneAuth">
@@ -4598,11 +4714,6 @@ ${usageHint}`;
         const mt = menuLayoutTemplates.find(function(t) { return t.id === mid; });
         if (mt) return isArabic ? ('قائمة: ' + mt.nameAr) : (mt.nameEn + ' — code');
       }
-      if (key.indexOf('backend:') === 0) {
-        const bid = key.slice(8);
-        const bt = backendTemplates.find(function(t) { return t.id === bid; });
-        if (bt) return isArabic ? ('كود: ' + bt.nameAr) : (bt.nameEn + ' — code');
-      }
       const title = isArabic ? titleMapAr[key] : titleMapEn[key];
       if (!title) return isArabic ? 'كود HTML' : 'HTML Code';
       return isArabic ? 'كود ' + title : title + ' Code';
@@ -6616,598 +6727,6 @@ ${usageHint}`;
       }
     ];
 
-    const backendTemplates = [
-      {
-        id: 'fetch-get',
-        nameEn: 'Fetch — GET JSON (browser)',
-        nameAr: 'Fetch — قراءة JSON (متصفح)',
-        code: `<!-- Fetch a JSON list from a public API and render it -->
-<button id="loadUsers">Load users</button>
-<ul id="users"></ul>
-<script>
-  document.getElementById('loadUsers').addEventListener('click', async function () {
-    const out = document.getElementById('users');
-    out.innerHTML = '<li>Loading...</li>';
-    try {
-      const res = await fetch('https://jsonplaceholder.typicode.com/users');
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      out.innerHTML = data.map(function (u) {
-        return '<li>' + u.name + ' — <a href="mailto:' + u.email + '">' + u.email + '</a></li>';
-      }).join('');
-    } catch (err) {
-      out.innerHTML = '<li style="color:red">' + err.message + '</li>';
-    }
-  });
-<\/script>`
-      },
-      {
-        id: 'fetch-post-json',
-        nameEn: 'Fetch — POST JSON',
-        nameAr: 'Fetch — إرسال JSON',
-        code: `<!-- POST JSON body to an endpoint and read the response -->
-<form id="createPostForm">
-  <input name="title" placeholder="Title" required>
-  <textarea name="body" placeholder="Body"></textarea>
-  <button type="submit">Create post</button>
-</form>
-<pre id="postResult" style="background:#f3f4f6;padding:10px;border-radius:6px;"></pre>
-<script>
-  document.getElementById('createPostForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    const res = await fetch('https://jsonplaceholder.typicode.com/posts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: data.title, body: data.body, userId: 1 })
-    });
-    const json = await res.json();
-    document.getElementById('postResult').textContent = 'Status: ' + res.status + '\\n' + JSON.stringify(json, null, 2);
-  });
-<\/script>`
-      },
-      {
-        id: 'fetch-bearer',
-        nameEn: 'Fetch — with Bearer token',
-        nameAr: 'Fetch — مع رمز Bearer',
-        code: `<!-- Call a protected endpoint with an Authorization header -->
-<input id="tokenInput" type="password" placeholder="Bearer token">
-<input id="urlInput" type="text" placeholder="https://api.example.com/me" style="min-width:240px">
-<button id="callApi">Call</button>
-<pre id="apiOut" style="background:#f3f4f6;padding:10px;border-radius:6px;"></pre>
-<script>
-  document.getElementById('callApi').addEventListener('click', async function () {
-    const token = document.getElementById('tokenInput').value.trim();
-    const url   = document.getElementById('urlInput').value.trim();
-    if (!url) return;
-    try {
-      const res = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ' + token
-        }
-      });
-      const text = await res.text();
-      let pretty = text;
-      try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (_) {}
-      document.getElementById('apiOut').textContent = res.status + ' ' + res.statusText + '\\n\\n' + pretty;
-    } catch (err) {
-      document.getElementById('apiOut').textContent = 'Error: ' + err.message;
-    }
-  });
-<\/script>`
-      },
-      {
-        id: 'fetch-formdata',
-        nameEn: 'Fetch — file upload (FormData)',
-        nameAr: 'Fetch — رفع ملف (FormData)',
-        code: `<!-- Upload a file with FormData (multipart/form-data) -->
-<form id="uploadForm">
-  <input type="file" name="file" required>
-  <input type="text" name="caption" placeholder="Caption">
-  <button type="submit">Upload</button>
-</form>
-<pre id="uploadOut" style="background:#f3f4f6;padding:10px;border-radius:6px;"></pre>
-<script>
-  document.getElementById('uploadForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    try {
-      const res = await fetch('https://httpbin.org/post', { method: 'POST', body: fd });
-      const json = await res.json();
-      document.getElementById('uploadOut').textContent =
-        'Status: ' + res.status + '\\n' +
-        'Files: ' + JSON.stringify(json.files, null, 2) + '\\n' +
-        'Form: '  + JSON.stringify(json.form, null, 2);
-    } catch (err) {
-      document.getElementById('uploadOut').textContent = err.message;
-    }
-  });
-<\/script>`
-      },
-      {
-        id: 'axios-cdn',
-        nameEn: 'Axios via CDN',
-        nameAr: 'Axios عبر CDN',
-        code: `<!-- Axios via CDN: simpler API, automatic JSON parsing -->
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"><\/script>
-<button id="axiosBtn">Load posts</button>
-<pre id="axiosOut" style="background:#f3f4f6;padding:10px;border-radius:6px;"></pre>
-<script>
-  document.getElementById('axiosBtn').addEventListener('click', async function () {
-    try {
-      const r = await axios.get('https://jsonplaceholder.typicode.com/posts?_limit=5');
-      document.getElementById('axiosOut').textContent = JSON.stringify(r.data, null, 2);
-    } catch (err) {
-      document.getElementById('axiosOut').textContent = 'Error: ' + (err.response && err.response.status || err.message);
-    }
-  });
-<\/script>`
-      },
-      {
-        id: 'localstorage-crud',
-        nameEn: 'localStorage CRUD (browser DB)',
-        nameAr: 'localStorage عمليات قراءة/كتابة',
-        code: `<!-- Tiny notes app stored in localStorage -->
-<form id="noteForm">
-  <input name="text" placeholder="Write a note..." required>
-  <button>Add</button>
-</form>
-<ul id="notesList"></ul>
-<script>
-  const KEY = 'demo.notes';
-  function load()  { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (_) { return []; } }
-  function save(v) { localStorage.setItem(KEY, JSON.stringify(v)); }
-  function render() {
-    const list = document.getElementById('notesList');
-    list.innerHTML = load().map(function (n, i) {
-      return '<li>' + n + ' <button data-i="' + i + '">x</button></li>';
-    }).join('');
-    list.querySelectorAll('button').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        const arr = load();
-        arr.splice(+btn.dataset.i, 1);
-        save(arr); render();
-      });
-    });
-  }
-  document.getElementById('noteForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const arr = load();
-    arr.push(fd.get('text'));
-    save(arr); e.target.reset(); render();
-  });
-  render();
-<\/script>`
-      },
-      {
-        id: 'indexeddb-crud',
-        nameEn: 'IndexedDB CRUD (browser DB)',
-        nameAr: 'IndexedDB قاعدة بيانات بالمتصفح',
-        code: `<!-- IndexedDB tiny CRUD demo (db: app, store: items) -->
-<form id="ixForm">
-  <input name="text" placeholder="Item text" required>
-  <button>Add</button>
-</form>
-<ul id="ixList"></ul>
-<script>
-  function openDb() {
-    return new Promise(function (resolve, reject) {
-      const req = indexedDB.open('app', 1);
-      req.onupgradeneeded = function () {
-        req.result.createObjectStore('items', { keyPath: 'id', autoIncrement: true });
-      };
-      req.onsuccess = function () { resolve(req.result); };
-      req.onerror   = function () { reject(req.error); };
-    });
-  }
-  async function add(text) {
-    const db = await openDb();
-    return new Promise(function (resolve, reject) {
-      const tx = db.transaction('items', 'readwrite');
-      tx.objectStore('items').add({ text: text, ts: Date.now() });
-      tx.oncomplete = resolve;
-      tx.onerror = function () { reject(tx.error); };
-    });
-  }
-  async function remove(id) {
-    const db = await openDb();
-    return new Promise(function (resolve, reject) {
-      const tx = db.transaction('items', 'readwrite');
-      tx.objectStore('items').delete(id);
-      tx.oncomplete = resolve;
-      tx.onerror = function () { reject(tx.error); };
-    });
-  }
-  async function list() {
-    const db = await openDb();
-    return new Promise(function (resolve, reject) {
-      const out = [];
-      const cur = db.transaction('items').objectStore('items').openCursor();
-      cur.onsuccess = function (e) {
-        const c = e.target.result;
-        if (c) { out.push(c.value); c.continue(); } else { resolve(out); }
-      };
-      cur.onerror = function () { reject(cur.error); };
-    });
-  }
-  async function render() {
-    const items = await list();
-    document.getElementById('ixList').innerHTML = items.map(function (it) {
-      return '<li>' + it.text + ' <button data-id="' + it.id + '">x</button></li>';
-    }).join('');
-    document.querySelectorAll('#ixList button').forEach(function (b) {
-      b.addEventListener('click', async function () { await remove(+b.dataset.id); render(); });
-    });
-  }
-  document.getElementById('ixForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    await add(new FormData(e.target).get('text'));
-    e.target.reset();
-    render();
-  });
-  render();
-<\/script>`
-      },
-      {
-        id: 'firebase-rest',
-        nameEn: 'Firebase Realtime DB (REST)',
-        nameAr: 'قاعدة بيانات Firebase (REST)',
-        code: `<!-- Read/write Firebase Realtime Database via REST -->
-<!-- Replace DB_URL with your project URL, e.g. https://my-app-default-rtdb.firebaseio.com -->
-<input id="msgInput" placeholder="message">
-<button id="addMsgBtn">Send</button>
-<ul id="msgList"></ul>
-<script>
-  const DB_URL = 'https://YOUR-PROJECT-default-rtdb.firebaseio.com';
-  const PATH = '/messages.json';
-
-  async function load() {
-    const res = await fetch(DB_URL + PATH);
-    const obj = await res.json();
-    document.getElementById('msgList').innerHTML = Object.entries(obj || {}).map(function (e) {
-      return '<li>' + e[1].text + '</li>';
-    }).join('');
-  }
-  document.getElementById('addMsgBtn').addEventListener('click', async function () {
-    const text = document.getElementById('msgInput').value.trim();
-    if (!text) return;
-    await fetch(DB_URL + PATH, { method: 'POST', body: JSON.stringify({ text: text, ts: Date.now() }) });
-    document.getElementById('msgInput').value = '';
-    load();
-  });
-  load();
-<\/script>`
-      },
-      {
-        id: 'supabase-js',
-        nameEn: 'Supabase (JS client)',
-        nameAr: 'Supabase (عبر JS)',
-        code: `<!-- Supabase via CDN: pass your URL and anon key -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"><\/script>
-<button id="loadRows">Load rows</button>
-<pre id="sbOut" style="background:#f3f4f6;padding:10px;border-radius:6px;"></pre>
-<script>
-  const SUPABASE_URL  = 'https://YOUR-PROJECT.supabase.co';
-  const SUPABASE_ANON = 'YOUR-ANON-KEY';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-  document.getElementById('loadRows').addEventListener('click', async function () {
-    const { data, error } = await sb.from('messages').select('*').limit(20);
-    document.getElementById('sbOut').textContent = error
-      ? 'Error: ' + error.message
-      : JSON.stringify(data, null, 2);
-  });
-<\/script>`
-      },
-      {
-        id: 'node-express',
-        nameEn: 'Node.js — Express REST API',
-        nameAr: 'Node.js — REST API بـ Express',
-        code: `// server.js — run with:  node server.js   (after \`npm i express cors\`)
-const express = require('express');
-const cors    = require('cors');
-const app  = express();
-const port = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(express.json());
-
-let users = [
-  { id: 1, name: 'Yarub' },
-  { id: 2, name: 'Sara'  }
-];
-
-// READ
-app.get('/api/users', (req, res) => res.json(users));
-app.get('/api/users/:id', (req, res) => {
-  const u = users.find(x => x.id === Number(req.params.id));
-  u ? res.json(u) : res.status(404).json({ error: 'not found' });
-});
-
-// CREATE
-app.post('/api/users', (req, res) => {
-  const u = { id: Date.now(), name: req.body.name };
-  users.push(u);
-  res.status(201).json(u);
-});
-
-// UPDATE
-app.put('/api/users/:id', (req, res) => {
-  const u = users.find(x => x.id === Number(req.params.id));
-  if (!u) return res.status(404).json({ error: 'not found' });
-  Object.assign(u, req.body);
-  res.json(u);
-});
-
-// DELETE
-app.delete('/api/users/:id', (req, res) => {
-  users = users.filter(x => x.id !== Number(req.params.id));
-  res.json({ ok: true });
-});
-
-app.listen(port, () => console.log('API on http://localhost:' + port));`
-      },
-      {
-        id: 'node-mysql',
-        nameEn: 'Node.js + MySQL (mysql2)',
-        nameAr: 'Node.js + MySQL (mysql2)',
-        code: `// db-mysql.js — run with:  node db-mysql.js   (after \`npm i mysql2\`)
-const mysql = require('mysql2/promise');
-
-async function main() {
-  const conn = await mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'secret',
-    database: 'app'
-  });
-
-  // CREATE TABLE (idempotent)
-  await conn.execute(\`CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(120) NOT NULL,
-    email VARCHAR(180) UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )\`);
-
-  // INSERT
-  await conn.execute('INSERT INTO users (name, email) VALUES (?, ?)', ['Yarub', 'y@example.com']);
-
-  // SELECT
-  const [rows] = await conn.execute('SELECT * FROM users ORDER BY id DESC LIMIT 10');
-  console.log(rows);
-
-  // UPDATE
-  await conn.execute('UPDATE users SET name = ? WHERE email = ?', ['Yarub W.', 'y@example.com']);
-
-  // DELETE
-  // await conn.execute('DELETE FROM users WHERE id = ?', [123]);
-
-  await conn.end();
-}
-
-main().catch(console.error);`
-      },
-      {
-        id: 'node-mongo',
-        nameEn: 'Node.js + MongoDB (mongoose)',
-        nameAr: 'Node.js + MongoDB (mongoose)',
-        code: `// db-mongo.js — run with:  node db-mongo.js   (after \`npm i mongoose\`)
-const mongoose = require('mongoose');
-
-const userSchema = new mongoose.Schema({
-  name:  { type: String, required: true },
-  email: { type: String, unique: true },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const User = mongoose.model('User', userSchema);
-
-async function main() {
-  await mongoose.connect('mongodb://127.0.0.1:27017/app');
-
-  // CREATE
-  await User.create({ name: 'Yarub', email: 'y@example.com' });
-
-  // READ
-  const list = await User.find().sort({ createdAt: -1 }).limit(10);
-  console.log(list);
-
-  // UPDATE
-  await User.updateOne({ email: 'y@example.com' }, { $set: { name: 'Yarub W.' } });
-
-  // DELETE
-  // await User.deleteOne({ _id: '...' });
-
-  await mongoose.disconnect();
-}
-
-main().catch(console.error);`
-      },
-      {
-        id: 'php-api',
-        nameEn: 'PHP — JSON API + MySQL (PDO)',
-        nameAr: 'PHP — REST API مع MySQL',
-        code: `<?php
-// api.php — quick REST endpoint with PDO. Place on a PHP host (Apache/Nginx + PHP 8+).
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type,Authorization');
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
-
-try {
-  $pdo = new PDO('mysql:host=localhost;dbname=app;charset=utf8mb4', 'root', 'secret', [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-  ]);
-} catch (Throwable $e) {
-  http_response_code(500);
-  echo json_encode(['error' => 'DB connection failed']);
-  exit;
-}
-
-$method = $_SERVER['REQUEST_METHOD'];
-$id     = isset($_GET['id']) ? (int) $_GET['id'] : 0;
-$body   = json_decode(file_get_contents('php://input'), true) ?? [];
-
-switch ($method) {
-  case 'GET':
-    if ($id) {
-      $row = $pdo->prepare('SELECT * FROM users WHERE id=?');
-      $row->execute([$id]);
-      echo json_encode($row->fetch() ?: null);
-    } else {
-      echo json_encode($pdo->query('SELECT * FROM users ORDER BY id DESC')->fetchAll());
-    }
-    break;
-
-  case 'POST':
-    $st = $pdo->prepare('INSERT INTO users (name, email) VALUES (?, ?)');
-    $st->execute([$body['name'] ?? '', $body['email'] ?? '']);
-    echo json_encode(['id' => $pdo->lastInsertId()]);
-    break;
-
-  case 'PUT':
-    $st = $pdo->prepare('UPDATE users SET name=?, email=? WHERE id=?');
-    $st->execute([$body['name'] ?? '', $body['email'] ?? '', $id]);
-    echo json_encode(['ok' => true]);
-    break;
-
-  case 'DELETE':
-    $pdo->prepare('DELETE FROM users WHERE id=?')->execute([$id]);
-    echo json_encode(['ok' => true]);
-    break;
-
-  default:
-    http_response_code(405);
-    echo json_encode(['error' => 'Method not allowed']);
-}`
-      },
-      {
-        id: 'python-flask',
-        nameEn: 'Python — Flask + SQLite',
-        nameAr: 'Python — Flask + SQLite',
-        code: `# app.py — pip install flask flask-cors
-# run:  python app.py
-import sqlite3
-from flask import Flask, request, jsonify, g
-from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app)
-
-DB = 'app.db'
-
-def db():
-    if 'db' not in g:
-        g.db = sqlite3.connect(DB)
-        g.db.row_factory = sqlite3.Row
-    return g.db
-
-@app.teardown_appcontext
-def close_db(_):
-    if 'db' in g:
-        g.db.close()
-
-@app.before_request
-def init():
-    db().execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE
-    )''')
-
-@app.get('/api/users')
-def list_users():
-    rows = db().execute('SELECT * FROM users ORDER BY id DESC').fetchall()
-    return jsonify([dict(r) for r in rows])
-
-@app.post('/api/users')
-def create_user():
-    data = request.get_json() or {}
-    cur = db().execute('INSERT INTO users (name, email) VALUES (?, ?)',
-                       (data.get('name'), data.get('email')))
-    db().commit()
-    return jsonify({ 'id': cur.lastrowid }), 201
-
-@app.put('/api/users/<int:user_id>')
-def update_user(user_id):
-    data = request.get_json() or {}
-    db().execute('UPDATE users SET name=?, email=? WHERE id=?',
-                 (data.get('name'), data.get('email'), user_id))
-    db().commit()
-    return jsonify({ 'ok': True })
-
-@app.delete('/api/users/<int:user_id>')
-def delete_user(user_id):
-    db().execute('DELETE FROM users WHERE id=?', (user_id,))
-    db().commit()
-    return jsonify({ 'ok': True })
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)`
-      },
-      {
-        id: 'json-server',
-        nameEn: 'json-server (mock REST in 30s)',
-        nameAr: 'json-server (REST وهمي بسرعة)',
-        code: `// 1) Save a db.json file like:
-// {
-//   "users": [ { "id": 1, "name": "Yarub" } ],
-//   "posts": []
-// }
-//
-// 2) Install once:    npm i -g json-server
-// 3) Start:           json-server --watch db.json --port 3001
-//
-// You now have GET/POST/PUT/PATCH/DELETE on:
-//   http://localhost:3001/users
-//   http://localhost:3001/posts
-//
-// Browser usage:
-fetch('http://localhost:3001/users')
-  .then(r => r.json())
-  .then(console.log);
-
-fetch('http://localhost:3001/users', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ name: 'Sara' })
-}).then(r => r.json()).then(console.log);`
-      },
-      {
-        id: 'sql-schema',
-        nameEn: 'SQL — schema starter (MySQL/Postgres)',
-        nameAr: 'SQL — قالب جداول للبدء',
-        code: `-- schema.sql — run in MySQL or PostgreSQL
-CREATE TABLE IF NOT EXISTS users (
-  id          BIGINT PRIMARY KEY AUTO_INCREMENT,
-  name        VARCHAR(120) NOT NULL,
-  email       VARCHAR(180) UNIQUE,
-  password    VARCHAR(200) NOT NULL,
-  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS posts (
-  id          BIGINT PRIMARY KEY AUTO_INCREMENT,
-  user_id     BIGINT NOT NULL,
-  title       VARCHAR(200) NOT NULL,
-  body        TEXT,
-  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_posts_user ON posts (user_id);
-
--- A few rows to start
-INSERT INTO users (name, email, password) VALUES
-  ('Yarub', 'y@example.com', 'change-me'),
-  ('Sara',  's@example.com', 'change-me');`
-      }
-    ];
 
     /* ============================================================
        GAME BUILDER — generators (frontend only, beginner-friendly)
@@ -8770,12 +8289,18 @@ document.getElementById("restartBtn").addEventListener("click", function(){
     const sampleUploadInput  = document.getElementById('sampleUploadInput');
     const formsSelector       = document.getElementById('formsSelector');
     const menuLayoutSelector  = document.getElementById('menuLayoutSelector');
-    const backendSelector     = document.getElementById('backendSelector');
     const apiBtn              = document.getElementById('apiBtn');
     const apiModal            = document.getElementById('apiModal');
     const closeApiBtn         = document.getElementById('closeApiBtn');
     const apiMethodEl         = document.getElementById('apiMethod');
+    const apiMethodGetBtn     = document.getElementById('apiMethodGetBtn');
+    const apiMethodPostBtn    = document.getElementById('apiMethodPostBtn');
     const apiUrlEl            = document.getElementById('apiUrl');
+    const apiToggleCurlBtn    = document.getElementById('apiToggleCurlBtn');
+    const apiCurlExpand       = document.getElementById('apiCurlExpand');
+    const apiCurlPaste        = document.getElementById('apiCurlPaste');
+    const apiParseCurlBtn     = document.getElementById('apiParseCurlBtn');
+    const apiQueryParams      = document.getElementById('apiQueryParams');
     const apiSendBtn          = document.getElementById('apiSendBtn');
     const apiHeadersEl        = document.getElementById('apiHeaders');
     const apiBodyEl           = document.getElementById('apiBody');
@@ -8987,34 +8512,6 @@ document.getElementById("restartBtn").addEventListener("click", function(){
       this.value = '';
     });
 
-    /* ---------- Backend / Database snippets ---------- */
-    function rebuildBackendSelector() {
-      backendSelector.innerHTML = '';
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = isArabic ? 'الواجهة الخلفية وقاعدة البيانات' : 'Backend & DB';
-      backendSelector.appendChild(placeholder);
-      backendTemplates.forEach(function (b) {
-        const opt = document.createElement('option');
-        opt.value = b.id;
-        opt.textContent = isArabic ? b.nameAr : b.nameEn;
-        backendSelector.appendChild(opt);
-      });
-    }
-
-    backendSelector.addEventListener('change', function () {
-      const id = this.value;
-      if (!id) return;
-      const tpl = backendTemplates.find(function (t) { return t.id === id; });
-      if (!tpl) return;
-      currentSnippetKey = 'backend:' + tpl.id;
-      currentSnippet = normalizeSnippetCode(tpl.code);
-      modalTitle.textContent = isArabic ? ('كود: ' + tpl.nameAr) : (tpl.nameEn + ' — code');
-      snippetCode.textContent = currentSnippet;
-      snippetModal.classList.add('show');
-      this.value = '';
-    });
-
     /* ---------- API Tester ---------- */
     const API_HISTORY_KEY = 'htmlStudio.apiHistory';
 
@@ -9031,6 +8528,35 @@ document.getElementById("restartBtn").addEventListener("click", function(){
       t.addEventListener('click', function () { apiSetTab(t.dataset.pane); });
     });
 
+    syncApiMethodButtons();
+    apiMethodGetBtn.addEventListener('click', function () {
+      apiMethodEl.value = 'GET';
+      syncApiMethodButtons();
+    });
+    apiMethodPostBtn.addEventListener('click', function () {
+      apiMethodEl.value = 'POST';
+      syncApiMethodButtons();
+    });
+    apiMethodEl.addEventListener('change', syncApiMethodButtons);
+
+    function refreshApiCurlToggleLabel() {
+      if (!apiToggleCurlBtn || !apiCurlExpand) return;
+      const open = !apiCurlExpand.hidden;
+      apiToggleCurlBtn.textContent = open
+        ? (isArabic ? 'إخفاء curl' : 'Hide cURL')
+        : (isArabic ? 'استخدام curl' : 'Use cURL');
+    }
+
+    apiToggleCurlBtn.addEventListener('click', function () {
+      apiCurlExpand.hidden = !apiCurlExpand.hidden;
+      if (!apiCurlExpand.hidden) apiCurlPaste.focus();
+      refreshApiCurlToggleLabel();
+    });
+
+    apiParseCurlBtn.addEventListener('click', function () {
+      parseCurlOrUrlIntoApiForm(apiCurlPaste.value);
+    });
+
     function parseHeaders(text) {
       const out = {};
       String(text || '').split(/\r?\n/).forEach(function (line) {
@@ -9043,6 +8569,218 @@ document.getElementById("restartBtn").addEventListener("click", function(){
       return out;
     }
 
+    function splitUrlForForm(fullUrl) {
+      const raw = String(fullUrl || '').trim();
+      if (!raw) return { base: '', paramsText: '' };
+      const hashIdx = raw.indexOf('#');
+      const hash = hashIdx >= 0 ? raw.slice(hashIdx) : '';
+      const noHash = hashIdx >= 0 ? raw.slice(0, hashIdx) : raw;
+      const qIdx = noHash.indexOf('?');
+      if (qIdx < 0) return { base: raw, paramsText: '' };
+      const baseOnly = noHash.slice(0, qIdx);
+      const qs = noHash.slice(qIdx + 1);
+      const sp = new URLSearchParams(qs);
+      const lines = [];
+      sp.forEach(function (v, k) { lines.push(k + '=' + v); });
+      return { base: baseOnly + hash, paramsText: lines.join('\n') };
+    }
+
+    function mergeParamsIntoUrl(url, paramsText) {
+      const raw = String(url || '').trim();
+      if (!raw) return '';
+      const addLines = function (sp) {
+        String(paramsText || '').split(/\r?\n/).forEach(function (line) {
+          line = line.trim();
+          if (!line || line.charAt(0) === '#') return;
+          const eq = line.indexOf('=');
+          if (eq < 0) {
+            if (line) sp.set(line, '');
+          } else {
+            const k = line.slice(0, eq).trim();
+            const v = line.slice(eq + 1).trim();
+            if (k) sp.set(k, v);
+          }
+        });
+      };
+      const hashIdx = raw.indexOf('#');
+      const hash = hashIdx >= 0 ? raw.slice(hashIdx) : '';
+      const noHash = hashIdx >= 0 ? raw.slice(0, hashIdx) : raw;
+      const qi = noHash.indexOf('?');
+      const base = qi >= 0 ? noHash.slice(0, qi) : noHash;
+      const existingQs = qi >= 0 ? noHash.slice(qi + 1) : '';
+      const sp = new URLSearchParams(existingQs);
+      addLines(sp);
+      const qs = sp.toString();
+      return base + (qs ? '?' + qs : '') + hash;
+    }
+
+    function syncApiMethodButtons() {
+      let m = String(apiMethodEl.value || 'GET').toUpperCase();
+      if (m !== 'GET' && m !== 'POST') {
+        m = 'GET';
+        apiMethodEl.value = 'GET';
+      }
+      apiMethodGetBtn.classList.toggle('active', m === 'GET');
+      apiMethodPostBtn.classList.toggle('active', m === 'POST');
+    }
+
+    function parseCurlOrUrlIntoApiForm(raw) {
+      let t = String(raw || '').trim();
+      if (!t) {
+        alert(isArabic ? 'الصق رابطاً أو أمر curl' : 'Paste a URL or a curl command');
+        return;
+      }
+      t = t.replace(/\\\r?\n/g, ' ');
+
+      function tokenizeCurl(s) {
+        const tokens = [];
+        let i = 0;
+        while (i < s.length) {
+          while (i < s.length && /\s/.test(s.charAt(i))) i++;
+          if (i >= s.length) break;
+          const q = s.charAt(i);
+          if (q === '"' || q === "'") {
+            const end = q;
+            i++;
+            let buf = '';
+            while (i < s.length && s.charAt(i) !== end) {
+              if (s.charAt(i) === '\\' && i + 1 < s.length) { buf += s.charAt(++i); i++; continue; }
+              buf += s.charAt(i++);
+            }
+            if (s.charAt(i) === end) i++;
+            tokens.push(buf);
+          } else {
+            let buf = '';
+            while (i < s.length && !/\s/.test(s.charAt(i))) buf += s.charAt(i++);
+            tokens.push(buf);
+          }
+        }
+        return tokens;
+      }
+
+      const isCurl = /^curl\b/i.test(t);
+      if (!isCurl) {
+        const line = t.split(/\r?\n/).map(function (s) { return s.trim(); }).find(Boolean) || t;
+        const split = splitUrlForForm(line);
+        apiUrlEl.value = split.base;
+        apiQueryParams.value = split.paramsText;
+        apiMethodEl.value = 'GET';
+        syncApiMethodButtons();
+        return;
+      }
+
+      const rest = t.replace(/^curl\b/i, '').trim();
+      const tokens = tokenizeCurl(rest);
+      let method = 'GET';
+      let url = '';
+      const headers = {};
+      const bodyParts = [];
+      let useGetWithData = false;
+      let i = 0;
+      while (i < tokens.length) {
+        const tok = tokens[i];
+        if (tok === '-X' || tok === '--request') {
+          let m = String(tokens[i + 1] || 'GET').toUpperCase();
+          if (m !== 'GET' && m !== 'POST') m = 'POST';
+          method = m;
+          i += 2;
+          continue;
+        }
+        if (tok === '-H' || tok === '--header') {
+          const h = tokens[i + 1] || '';
+          const colon = h.indexOf(':');
+          if (colon > 0) {
+            const hk = h.slice(0, colon).trim();
+            const hv = h.slice(colon + 1).trim();
+            if (hk) headers[hk] = hv;
+          }
+          i += 2;
+          continue;
+        }
+        if (tok === '-d' || tok === '--data' || tok === '--data-raw' || tok === '--data-binary') {
+          bodyParts.push(tokens[i + 1] || '');
+          i += 2;
+          continue;
+        }
+        if (tok === '--data-urlencode') {
+          bodyParts.push(tokens[i + 1] || '');
+          i += 2;
+          continue;
+        }
+        if (tok === '-G' || tok === '--get') {
+          useGetWithData = true;
+          method = 'GET';
+          i += 1;
+          continue;
+        }
+        if (/^https?:\/\//i.test(tok) || /^\/\//.test(tok)) {
+          url = tok.indexOf('//') === 0 ? ('https:' + tok) : tok;
+          i += 1;
+          continue;
+        }
+        if (tok.charAt(0) === '-') {
+          if (tokens[i + 1] && tokens[i + 1].charAt(0) !== '-') i += 2;
+          else i += 1;
+          continue;
+        }
+        if (/^[\w.+\-]+:\/\//.test(tok)) {
+          url = tok;
+          i += 1;
+          continue;
+        }
+        i++;
+      }
+
+      if (!url) {
+        const m = t.match(/https?:\/\/[^\s'"]+/);
+        if (m) url = m[0];
+      }
+      if (!url) {
+        alert(isArabic ? 'تعذّر العثور على رابط في الأمر' : 'Could not find a URL in the command');
+        return;
+      }
+
+      if (bodyParts.length && !useGetWithData && method === 'GET') {
+        method = 'POST';
+      }
+
+      const split = splitUrlForForm(url);
+      apiUrlEl.value = split.base;
+      apiQueryParams.value = split.paramsText;
+
+      if (useGetWithData && bodyParts.length) {
+        const joined = bodyParts.join('&');
+        try {
+          const sp = new URLSearchParams(joined);
+          const extra = [];
+          sp.forEach(function (v, k) { extra.push(k + '=' + v); });
+          apiQueryParams.value = [apiQueryParams.value, extra.join('\n')].filter(Boolean).join('\n');
+        } catch (_) {
+          apiQueryParams.value = [apiQueryParams.value, joined].filter(Boolean).join('\n');
+        }
+        bodyParts.length = 0;
+      }
+
+      apiMethodEl.value = method === 'POST' ? 'POST' : 'GET';
+      syncApiMethodButtons();
+
+      const headerLines = [];
+      Object.keys(headers).forEach(function (k) { headerLines.push(k + ': ' + headers[k]); });
+      apiHeadersEl.value = headerLines.join('\n');
+
+      const bodyJoined = bodyParts.join('');
+      if (apiMethodEl.value === 'POST' && bodyJoined) {
+        apiBodyEl.value = bodyJoined;
+        const ct = String(headers['Content-Type'] || headers['content-type'] || '').toLowerCase();
+        if (ct.indexOf('json') !== -1) apiBodyTypeEl.value = 'json';
+        else if (ct.indexOf('x-www-form-urlencoded') !== -1) apiBodyTypeEl.value = 'form';
+        else apiBodyTypeEl.value = 'text';
+      } else {
+        apiBodyEl.value = '';
+        apiBodyTypeEl.value = 'none';
+      }
+    }
+
     function setApiStatus(kind, label) {
       apiStatusPill.classList.remove('api-status-ok', 'api-status-redir', 'api-status-err', 'api-status-info', 'api-status-idle');
       apiStatusPill.classList.add('api-status-' + kind);
@@ -9051,7 +8789,7 @@ document.getElementById("restartBtn").addEventListener("click", function(){
 
     async function apiSendRequest() {
       const method = (apiMethodEl.value || 'GET').toUpperCase();
-      const url    = (apiUrlEl.value || '').trim();
+      const url    = mergeParamsIntoUrl(apiUrlEl.value, apiQueryParams.value);
       if (!url) {
         alert(isArabic ? 'الرجاء إدخال رابط' : 'Please enter a URL');
         return;
@@ -9060,7 +8798,7 @@ document.getElementById("restartBtn").addEventListener("click", function(){
       const headers = parseHeaders(apiHeadersEl.value);
       let body = null;
       const bodyType = apiBodyTypeEl.value;
-      const hasBody = method !== 'GET' && method !== 'HEAD' && bodyType !== 'none';
+      const hasBody = method === 'POST' && bodyType !== 'none';
       if (hasBody) {
         const raw = apiBodyEl.value || '';
         if (bodyType === 'json') {
@@ -9082,6 +8820,7 @@ document.getElementById("restartBtn").addEventListener("click", function(){
       }
 
       apiSetTab('apiPaneResponse');
+      syncApiMethodButtons();
       setApiStatus('info', isArabic ? 'جاري...' : 'Sending...');
       apiTimeText.textContent = '—';
       apiSizeText.textContent = '—';
@@ -9128,7 +8867,7 @@ document.getElementById("restartBtn").addEventListener("click", function(){
 
     apiInsertFetchBtn.addEventListener('click', function () {
       const method = (apiMethodEl.value || 'GET').toUpperCase();
-      const url    = (apiUrlEl.value || '').trim();
+      const url    = mergeParamsIntoUrl(apiUrlEl.value, apiQueryParams.value);
       if (!url) { alert(isArabic ? 'الرجاء إدخال رابط أولاً' : 'Please enter a URL first'); return; }
       const headers = parseHeaders(apiHeadersEl.value);
       const authType = apiAuthTypeEl.value;
@@ -9138,7 +8877,7 @@ document.getElementById("restartBtn").addEventListener("click", function(){
         try { headers['Authorization'] = 'Basic ' + btoa(authVal); } catch (_) {}
       }
       const bodyType = apiBodyTypeEl.value;
-      const hasBody  = method !== 'GET' && method !== 'HEAD' && bodyType !== 'none';
+      const hasBody  = method === 'POST' && bodyType !== 'none';
       const rawBody  = apiBodyEl.value || '';
 
       const opts = { method: method };
@@ -9221,13 +8960,21 @@ document.getElementById("restartBtn").addEventListener("click", function(){
         load.textContent = isArabic ? 'تحميل' : 'Load';
         load.addEventListener('click', function () {
           apiMethodEl.value    = item.method;
-          apiUrlEl.value       = item.url;
+          if (item.paramsText) {
+            apiUrlEl.value       = item.url;
+            apiQueryParams.value = item.paramsText;
+          } else {
+            const sp = splitUrlForForm(item.url || '');
+            apiUrlEl.value       = sp.base;
+            apiQueryParams.value = sp.paramsText;
+          }
           apiHeadersEl.value   = item.headersText || '';
           apiBodyEl.value      = item.body || '';
           apiBodyTypeEl.value  = item.bodyType || 'none';
           apiAuthTypeEl.value  = item.authType || 'none';
           apiAuthValueEl.value = item.authValue || '';
-          apiSetTab('apiPaneHeaders');
+          syncApiMethodButtons();
+          apiSetTab('apiPaneParams');
         });
 
         const del = document.createElement('button');
@@ -9262,6 +9009,7 @@ document.getElementById("restartBtn").addEventListener("click", function(){
       arr.push({
         method: (apiMethodEl.value || 'GET').toUpperCase(),
         url: url,
+        paramsText: apiQueryParams.value || '',
         headersText: apiHeadersEl.value || '',
         body: apiBodyEl.value || '',
         bodyType: apiBodyTypeEl.value,
@@ -9283,7 +9031,9 @@ document.getElementById("restartBtn").addEventListener("click", function(){
     });
 
     apiBtn.addEventListener('click', function () {
-      apiSetTab('apiPaneHeaders');
+      apiCurlExpand.hidden = true;
+      refreshApiCurlToggleLabel();
+      apiSetTab('apiPaneParams');
       renderApiHistory();
       apiModal.classList.add('show');
     });
@@ -9976,13 +9726,21 @@ document.getElementById("restartBtn").addEventListener("click", function(){
         ? 'نفّذ JavaScript داخل المعاينة... (مثال: document.title)'
         : 'Run JavaScript in preview... (e.g. document.title)';
       menuToggleBtn.title = isArabic ? 'القائمة' : 'Menu';
-      apiBtn.textContent = isArabic ? 'اختبار API' : 'API Tester';
+      apiBtn.textContent = 'API';
       document.getElementById('apiTitle').textContent = isArabic ? 'اختبار API' : 'API Tester';
       document.getElementById('closeApiBtn').textContent = isArabic ? 'إغلاق' : 'Close';
       document.getElementById('apiIntro').textContent = isArabic
-        ? 'أرسل طلبات HTTP من المتصفح. قد ترفض بعض الخوادم الطلبات بسبب CORS — استخدم API عاماً أو خادماً يسمح بذلك.'
-        : 'Send HTTP requests from the browser. Some servers will reject cross-origin requests (CORS) — use a public API or a server that allows it.';
+        ? 'أدخل الرابط والمعاملات الاختيارية ثم أرسل. قد يمنع بعض المواقع الطلبات من نطاق آخر (CORS).'
+        : 'Enter a URL, optional parameters, then Send. Some sites block cross-origin requests (CORS).';
       apiSendBtn.textContent       = isArabic ? 'إرسال'                  : 'Send';
+      document.getElementById('apiCurlLabel').textContent = isArabic ? 'الصق أمر curl (أو رابطاً)' : 'Paste cURL (or a URL)';
+      apiParseCurlBtn.textContent  = isArabic ? 'تطبيق على النموذج'     : 'Apply to form';
+      refreshApiCurlToggleLabel();
+      document.getElementById('apiMethodLabel').textContent = isArabic ? 'الطريقة' : 'Method';
+      document.getElementById('apiTabParams').textContent   = isArabic ? 'المعاملات' : 'Params';
+      document.getElementById('apiParamsHint').innerHTML    = isArabic
+        ? 'اختياري: سطر واحد لكل <code>name=value</code>. يُضاف إلى الرابط عند الإرسال.'
+        : 'Optional: one <code>name=value</code> per line. Added to the URL when you Send.';
       document.getElementById('apiTabHeaders').textContent  = isArabic ? 'الترويسات'           : 'Headers';
       document.getElementById('apiTabBody').textContent     = isArabic ? 'المحتوى'             : 'Body';
       document.getElementById('apiTabAuth').textContent     = isArabic ? 'المصادقة'            : 'Auth';
@@ -9993,8 +9751,8 @@ document.getElementById("restartBtn").addEventListener("click", function(){
         : 'One header per line, format: <code>Key: Value</code>';
       document.getElementById('apiBodyTypeLabel').firstChild.nodeValue = isArabic ? 'نوع المحتوى: ' : 'Body type: ';
       document.getElementById('apiBodyHint').textContent    = isArabic
-        ? 'يُتجاهل المحتوى مع GET / HEAD.'
-        : 'Body is ignored for GET / HEAD.';
+        ? 'يُتجاهل المحتوى مع طلبات GET.'
+        : 'Body is ignored for GET requests.';
       document.getElementById('apiAuthTypeLabel').firstChild.nodeValue = isArabic ? 'مصادقة: ' : 'Auth: ';
       document.getElementById('apiAuthHint').textContent    = isArabic
         ? 'تضاف المصادقة كترويسة Authorization عند الإرسال.'
@@ -10087,7 +9845,6 @@ document.getElementById("restartBtn").addEventListener("click", function(){
 
       rebuildFormsSelector();
       rebuildMenuLayoutSelector();
-      rebuildBackendSelector();
       renderApiHistory();
       renderStashList();
     };
@@ -10102,7 +9859,6 @@ document.getElementById("restartBtn").addEventListener("click", function(){
     refreshFileSelector();
     rebuildFormsSelector();
     rebuildMenuLayoutSelector();
-    rebuildBackendSelector();
     renderApiHistory();
     loadGithubCreds();
     applyMenuPosition();
