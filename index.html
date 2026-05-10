@@ -1,12 +1,13 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<!-- editor-fallback-plain: readable textarea until Prism actually renders tokens (avoids blank editor on CDN/Worker edge cases). -->
+<html lang="ar" dir="rtl" class="editor-fallback-plain">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Yarub HTML Playground</title>
 
   <link rel="icon" type="image/png" href="yarub-logo.png" />
-  <link href="./vendor/prism/prism.min.css" rel="stylesheet">
+  <link href="vendor/prism/prism.min.css" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
 
@@ -220,7 +221,7 @@
       position: relative;
       isolation: isolate;
       min-width: 0;
-      min-height: 0;
+      min-height: 8rem;
       height: 100%;
       overflow: hidden;
     }
@@ -2556,10 +2557,10 @@
     برمجة وتصميم م. يعرب وحشة - مدرسة ابن تيمية الثانوية الشاملة للبنين
   </div>
 
-  <!-- Same-origin vendor files: CDN scripts are often blocked or reordered on *.workers.dev, which left the editor blank (transparent textarea + no Prism). -->
-  <script src="./vendor/prism/prism.min.js" data-cfasync="false"></script>
-  <script src="./vendor/prism/prism-markup.min.js" data-cfasync="false"></script>
-  <script src="./vendor/jszip.min.js" data-cfasync="false"></script>
+  <!-- Same-origin vendor files (no CDN): avoids blank editor when third-party scripts fail on Workers. -->
+  <script src="vendor/prism/prism.min.js" data-cfasync="false"></script>
+  <script src="vendor/prism/prism-markup.min.js" data-cfasync="false"></script>
+  <script src="vendor/jszip.min.js" data-cfasync="false"></script>
   <script data-cfasync="false">
     const editor = document.getElementById('editor');
     const highlightedCode = document.getElementById('highlightedCode');
@@ -3828,7 +3829,14 @@ self.addEventListener('fetch', (event) => {
       if (canPrism) {
         try {
           Prism.highlightElement(highlightedCode);
-          document.documentElement.classList.remove('editor-fallback-plain');
+          const hasSource = editor.value.trim().length > 0;
+          const hasTokens = !!highlightedCode.querySelector('.token');
+          /* Only switch to transparent overlay when highlighting clearly worked; else keep plain visible text. */
+          if (!hasSource || hasTokens) {
+            document.documentElement.classList.remove('editor-fallback-plain');
+          } else {
+            document.documentElement.classList.add('editor-fallback-plain');
+          }
         } catch (err) {
           highlightedCode.innerHTML = escaped;
           document.documentElement.classList.add('editor-fallback-plain');
