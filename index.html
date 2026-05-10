@@ -354,6 +354,15 @@
       background: #fff;
     }
 
+    .pane-editor {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .pane-editor .editor-wrap {
+      min-height: 200px;
+    }
+
     .pane-header {
       padding: 10px 12px;
       background: #e5e7eb;
@@ -1973,7 +1982,23 @@
         <pre class="line-gutter" id="lineGutter" aria-hidden="true"></pre>
         <div class="editor-stack">
           <pre id="highlightedPre" class="language-html"><code id="highlightedCode" class="language-html"></code></pre>
-          <textarea id="editor" class="editor-textarea" spellcheck="false" autocomplete="off"></textarea>
+          <textarea id="editor" class="editor-textarea" spellcheck="false" autocomplete="off"><!DOCTYPE html>
+<html>
+<head>
+  <style>
+    h1 { 
+        color: #2563eb;
+       }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Hello World! 👋</h1>
+    <p>Edit this code and click <b>Run</b>.</p>
+    <button>Sample Button</button>
+  </div>
+</body>
+</html></textarea>
         </div>
       </div>
       <div class="status" id="editorStatus">Line 1, Column 1</div>
@@ -2540,8 +2565,26 @@
     برمجة وتصميم م. يعرب وحشة - مدرسة ابن تيمية الثانوية الشاملة للبنين
   </div>
 
-  <script src="vendor/jszip.min.js" data-cfasync="false"></script>
   <script data-cfasync="false">
+    /* Load JSZip only when exporting/importing ZIP so a missing vendor file cannot block the whole app. */
+    var jszipLoadPromise = null;
+    function ensureJSZipLoaded() {
+      if (typeof JSZip !== 'undefined') return Promise.resolve();
+      if (jszipLoadPromise) return jszipLoadPromise;
+      jszipLoadPromise = new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'vendor/jszip.min.js';
+        s.async = true;
+        s.onload = function () {
+          if (typeof JSZip !== 'undefined') resolve();
+          else reject(new Error('JSZip global missing'));
+        };
+        s.onerror = function () { reject(new Error('JSZip script failed to load')); };
+        document.head.appendChild(s);
+      });
+      return jszipLoadPromise;
+    }
+
     const editor = document.getElementById('editor');
     const highlightedCode = document.getElementById('highlightedCode');
     const highlightedPre = document.getElementById('highlightedPre');
@@ -4156,6 +4199,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     async function loadProjectFromZipFile(file) {
+      await ensureJSZipLoaded();
       const zip = await JSZip.loadAsync(await file.arrayBuffer());
 
       const pj = findZipEntryByBasename(zip, 'project.json');
@@ -4264,10 +4308,7 @@ self.addEventListener('fetch', (event) => {
     async function exportProjectAllFiles() {
       prepareProjectSaveState();
       try {
-        if (typeof JSZip === 'undefined') {
-          alert(isArabic ? 'دعم ZIP غير متوفر (المكتبة غير محمّلة).' : 'ZIP export is not available (library missing).');
-          return;
-        }
+        await ensureJSZipLoaded();
         const zip = new JSZip();
         for (const [name, content] of Object.entries(files)) {
           if (typeof content !== 'string') continue;
@@ -5604,11 +5645,7 @@ ${usageHint}`;
         const nameLower = file.name.toLowerCase();
 
         if (nameLower.endsWith('.zip')) {
-          if (typeof JSZip === 'undefined') {
-            alert(isArabic ? 'دعم ZIP غير متوفر (المكتبة غير محمّلة).' : 'ZIP support is not available (library missing).');
-            input.value = '';
-            return;
-          }
+          await ensureJSZipLoaded();
           await loadProjectFromZipFile(file);
         } else {
           const text = await new Promise((resolve, reject) => {
