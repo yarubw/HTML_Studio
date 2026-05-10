@@ -1,5 +1,7 @@
 # Sync to Mobile — backend service
 
+**Step-by-step guide (APK download, iOS Xcode project, troubleshooting):** see **[MANUAL.md](./MANUAL.md)**.
+
 Node.js / Express service that:
 
 1. **Scaffolds** a per-student GitHub repository with **Capacitor 6**, `www/` for web assets, and **GitHub Actions** to build an **Android debug APK** (Ubuntu) and an **iOS simulator build** (macOS).

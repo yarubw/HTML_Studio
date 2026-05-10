@@ -60,7 +60,8 @@
       background: #1d4ed8;
     }
 
-    #menuCssSelectMode.active {
+    #menuCssSelectMode.active,
+    #menuJsSelectMode.active {
       background: #065f46;
       color: #d1fae5;
     }
@@ -629,6 +630,98 @@
     #closeStylePanelBtn {
       background: #374151;
       color: #fff;
+    }
+
+    .inspector-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f8fafc;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+
+    .inspector-tab {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 10px 12px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      color: #6b7280;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    .inspector-tab.active {
+      color: #2563eb;
+      border-bottom-color: #2563eb;
+      background: #fff;
+    }
+
+    .inspector-pane.hidden {
+      display: none;
+    }
+
+    .js-apply-btn {
+      width: 100%;
+      margin-top: 8px;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      background: #4f46e5;
+      color: #fff;
+    }
+
+    .js-apply-btn:hover {
+      background: #4338ca;
+    }
+
+    .js-panel-hint {
+      font-size: 11px;
+      color: #6b7280;
+      margin: 0 0 8px;
+      line-height: 1.4;
+    }
+
+    .js-more-list {
+      margin: 0;
+      padding-inline-start: 18px;
+      font-size: 12px;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+
+    #clearJsHandlersBtn {
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #f59e0b;
+      color: #fff;
+    }
+
+    #generatedJsBox {
+      direction: ltr;
+      text-align: left;
+      background: #1e1b4b;
+      color: #e0e7ff;
+      padding: 12px;
+      border-radius: 8px;
+      overflow: auto;
+      min-height: 100px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      margin: 0;
     }
 
     .status {
@@ -1697,6 +1790,12 @@
         </div>
       </div>
       <div class="menu-root">
+        <button type="button" class="menu-bar-btn" id="menuBarJs" data-menu-root="js" aria-expanded="false" aria-haspopup="true">JavaScript</button>
+        <div class="menu-panel" id="menuPanelJs" hidden>
+          <button type="button" class="menu-panel-btn" id="menuJsSelectMode">Select element in preview</button>
+        </div>
+      </div>
+      <div class="menu-root">
         <button type="button" class="menu-bar-btn" id="menuBarView" data-menu-root="view" aria-expanded="false" aria-haspopup="true">View</button>
         <div class="menu-panel" id="menuPanelViewbar" hidden>
           <button type="button" class="menu-panel-btn" id="menuViewSideLayout">Side menu layout</button>
@@ -1716,12 +1815,12 @@
         <div class="menu-panel" id="menuPanelGithub" hidden>
           <button type="button" class="menu-panel-btn" id="menuGhOpenPanel">Open sync &amp; settings…</button>
           <div class="menu-submenu-title" id="menuGhSyncTitle">Repository sync</div>
-          <button type="button" class="menu-panel-btn" id="menuGhAdd">Add</button>
-          <button type="button" class="menu-panel-btn" id="menuGhCommit">Commit</button>
-          <button type="button" class="menu-panel-btn" id="menuGhPush">Push</button>
-          <button type="button" class="menu-panel-btn" id="menuGhPull">Pull</button>
-          <button type="button" class="menu-panel-btn" id="menuGhStatus">Status</button>
-          <button type="button" class="menu-panel-btn" id="menuGhCheckout">Checkout branch…</button>
+          <button type="button" class="menu-panel-btn" id="menuGhAdd">git add — Stage changes</button>
+          <button type="button" class="menu-panel-btn" id="menuGhCommit">git commit — Create commit</button>
+          <button type="button" class="menu-panel-btn" id="menuGhPush">git push — Upload to GitHub</button>
+          <button type="button" class="menu-panel-btn" id="menuGhPull">git pull — Download from GitHub</button>
+          <button type="button" class="menu-panel-btn" id="menuGhStatus">git status — View state</button>
+          <button type="button" class="menu-panel-btn" id="menuGhCheckout">git checkout — Switch branch…</button>
         </div>
       </div>
     </nav>
@@ -1773,17 +1872,23 @@
         <div class="preview-layout">
           <div class="preview-canvas" id="previewCanvas">
             <div class="preview-frame-host" id="previewWrap">
-              <iframe id="previewFrame" allow="camera *; microphone *; geolocation *"></iframe>
+              <iframe id="previewFrame" allow="camera *; microphone *; geolocation *; fullscreen *"></iframe>
             </div>
           </div>
 
           <div class="style-panel" id="stylePanel">
             <div class="style-panel-header">
-              <div class="style-panel-title" id="stylePanelTitle">Element Styles</div>
+              <div class="style-panel-title" id="stylePanelTitle">Element inspector</div>
               <div class="style-panel-subtitle" id="selectedElementInfo">No element selected</div>
             </div>
 
+            <div class="inspector-tabs" role="tablist" aria-label="Inspector">
+              <button type="button" class="inspector-tab active" id="inspectorTabCss" role="tab" aria-selected="true">CSS</button>
+              <button type="button" class="inspector-tab" id="inspectorTabJs" role="tab" aria-selected="false">JavaScript</button>
+            </div>
+
             <div class="style-panel-body">
+              <div id="inspectorPaneCss" class="inspector-pane">
               <div class="css-group">
                 <div class="css-group-title" id="groupTextTitle">Text</div>
 
@@ -1894,6 +1999,80 @@
                   <pre id="generatedCssBox">/* CSS will appear here */</pre>
                 </div>
               </div>
+              </div>
+
+              <div id="inspectorPaneJs" class="inspector-pane hidden" aria-hidden="true">
+                <div class="css-group">
+                  <div class="css-group-title" id="groupJsNavTitle">Navigation</div>
+                  <div class="field">
+                    <label for="jsNavInternalPage" id="labelJsInternal">Open project page (same tab)</label>
+                    <select id="jsNavInternalPage"></select>
+                    <button type="button" class="js-apply-btn" id="jsApplyNavInternal">Apply on click</button>
+                  </div>
+                  <div class="field">
+                    <label for="jsNavExternalUrl" id="labelJsExternal">External URL (new tab)</label>
+                    <input type="url" id="jsNavExternalUrl" placeholder="https://example.com" dir="ltr">
+                    <button type="button" class="js-apply-btn" id="jsApplyNavExternal">Apply on click</button>
+                  </div>
+                </div>
+                <div class="css-group">
+                  <div class="css-group-title" id="groupJsContentTitle">Content &amp; visibility</div>
+                  <div class="field">
+                    <label for="jsInnerHtmlTargetId" id="labelJsInnerHtmlTarget">Target element id (inner HTML)</label>
+                    <input type="text" id="jsInnerHtmlTargetId" placeholder="outputBox" dir="ltr" autocomplete="off">
+                  </div>
+                  <div class="field">
+                    <label for="jsInnerHtmlInput" id="labelJsInnerHtml">New HTML inside that element</label>
+                    <input type="text" id="jsInnerHtmlInput" placeholder="Hello" dir="ltr">
+                    <button type="button" class="js-apply-btn" id="jsApplyInnerHtml">Apply on click</button>
+                  </div>
+                  <div class="field">
+                    <label for="jsClickColor" id="labelJsClickColor">Text color on click</label>
+                    <input type="color" id="jsClickColor" value="#2563eb">
+                    <button type="button" class="js-apply-btn" id="jsApplyClickColor">Apply on click</button>
+                  </div>
+                  <div class="field">
+                    <label for="jsToggleTargetId" id="labelJsToggleTarget">Target element id (show / hide)</label>
+                    <input type="text" id="jsToggleTargetId" placeholder="panel1" dir="ltr" autocomplete="off">
+                    <button type="button" class="js-apply-btn" id="jsApplyToggleHide">Apply click: toggle target hidden</button>
+                  </div>
+                </div>
+                <div class="css-group">
+                  <div class="css-group-title" id="groupJsHoverTitle">Hover</div>
+                  <div class="field">
+                    <button type="button" class="js-apply-btn" id="jsApplyHoverOutline">Add hover outline (enter / leave)</button>
+                  </div>
+                </div>
+                <div class="css-group">
+                  <div class="css-group-title" id="groupJsMediaTitle">Audio / video</div>
+                  <p class="js-panel-hint" id="jsMediaHint">Enter a media element id, or select an audio/video element and leave the id blank to use this.play().</p>
+                  <div class="field">
+                    <label for="jsMediaId" id="labelJsMediaId">Media element id</label>
+                    <input type="text" id="jsMediaId" placeholder="myVideo" dir="ltr">
+                    <button type="button" class="js-apply-btn" id="jsApplyPlayMedia">Apply click: play</button>
+                  </div>
+                </div>
+                <div class="css-group">
+                  <div class="css-group-title" id="groupJsMoreTitle">More you can code by hand</div>
+                  <ul class="js-more-list" id="jsMoreList">
+                    <li id="jsMoreItem1">element.classList.toggle('active')</li>
+                    <li id="jsMoreItem2">document.getElementById('x').focus()</li>
+                    <li id="jsMoreItem3">target.scrollIntoView({ behavior: 'smooth' })</li>
+                    <li id="jsMoreItem4">myDialog.showModal() (HTML dialog)</li>
+                    <li id="jsMoreItem5">navigator.clipboard.writeText('…')</li>
+                  </ul>
+                </div>
+                <div class="css-group">
+                  <div class="css-group-title" id="groupJsGeneratedTitle">Current handlers</div>
+                  <div class="field">
+                    <label id="labelGeneratedJs">Inline handlers (read-only)</label>
+                    <pre id="generatedJsBox">/* JS handlers will appear here */</pre>
+                  </div>
+                </div>
+                <div class="css-group">
+                  <button type="button" id="clearJsHandlersBtn">Clear JS handlers</button>
+                </div>
+              </div>
             </div>
 
             <div class="style-panel-footer">
@@ -1991,10 +2170,10 @@
           </div>
           <div class="github-actions">
             <button id="ghConnectBtn">Connect</button>
-            <button id="ghPullBtn">Pull Files</button>
-            <button id="ghStashBtn">Stash</button>
-            <button id="ghPopStashBtn">Restore Last</button>
-            <button id="ghCommitBtn">Commit &amp; push</button>
+            <button id="ghPullBtn">git pull — Pull files</button>
+            <button id="ghStashBtn">git stash — Save copy</button>
+            <button id="ghPopStashBtn">git stash pop — Restore last</button>
+            <button id="ghCommitBtn">git commit &amp; git push — Send to GitHub</button>
           </div>
 
           <div>
@@ -2261,6 +2440,19 @@
     const clearStylesBtn = document.getElementById('clearStylesBtn');
     const closeStylePanelBtn = document.getElementById('closeStylePanelBtn');
     const generatedCssBox = document.getElementById('generatedCssBox');
+    const generatedJsBox = document.getElementById('generatedJsBox');
+    const inspectorTabCss = document.getElementById('inspectorTabCss');
+    const inspectorTabJs = document.getElementById('inspectorTabJs');
+    const inspectorPaneCss = document.getElementById('inspectorPaneCss');
+    const inspectorPaneJs = document.getElementById('inspectorPaneJs');
+    const jsNavInternalPage = document.getElementById('jsNavInternalPage');
+    const jsNavExternalUrl = document.getElementById('jsNavExternalUrl');
+    const jsInnerHtmlTargetId = document.getElementById('jsInnerHtmlTargetId');
+    const jsInnerHtmlInput = document.getElementById('jsInnerHtmlInput');
+    const jsToggleTargetId = document.getElementById('jsToggleTargetId');
+    const jsClickColor = document.getElementById('jsClickColor');
+    const jsMediaId = document.getElementById('jsMediaId');
+    const clearJsHandlersBtn = document.getElementById('clearJsHandlersBtn');
 
     const cssControls = {
       color: document.getElementById('cssColor'),
@@ -2292,6 +2484,7 @@
     let selectedPreviewElement = null;
     let selectedPrevOutline = '';
     let selectedPrevOutlineOffset = '';
+    let pendingInspectorTab = 'css';
 
     const defaultCode = `<!DOCTYPE html>
 <html>
@@ -3582,6 +3775,134 @@ self.addEventListener('fetch', (event) => {
       generatedCssBox.textContent = `${selector} {\n${cssLines.join('\n')}\n}`;
     }
 
+    function mergeInlineHandler(existing, snippet) {
+      const a = String(existing || '').trim();
+      const b = String(snippet || '').trim();
+      if (!b) return a;
+      if (!a) return b;
+      return a.replace(/;?\s*$/, '') + '; ' + b;
+    }
+
+    /** JS string as '...' so onclick="..." does not need &quot; in saved HTML. */
+    function jsStringSingleQuoted(value) {
+      return "'" + String(value)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/\r/g, '\\r')
+        .replace(/\n/g, '\\n') + "'";
+    }
+
+    function applyInlineAttrToSelection(attrName, jsSnippet, append) {
+      if (!selectedPreviewElement) return;
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(editor.value, 'text/html');
+      const sourceEl = doc.querySelector('[data-editor-selected="1"]');
+      if (!sourceEl) return;
+
+      const next = append
+        ? mergeInlineHandler(sourceEl.getAttribute(attrName) || '', jsSnippet)
+        : String(jsSnippet || '').trim();
+
+      if (next) {
+        sourceEl.setAttribute(attrName, next);
+      } else {
+        sourceEl.removeAttribute(attrName);
+      }
+
+      editor.value = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+      lastSavedValue = editor.value;
+      syncHighlight();
+      updateCursorStatus();
+
+      try {
+        const markedPreviewEl = previewFrameRef.contentDocument.querySelector('[data-editor-selected="1"]');
+        if (markedPreviewEl) {
+          if (next) {
+            markedPreviewEl.setAttribute(attrName, next);
+          } else {
+            markedPreviewEl.removeAttribute(attrName);
+          }
+        }
+      } catch (_) {}
+
+      highlightSelectedElement(selectedPreviewElement);
+      updateGeneratedCssBox();
+      updateGeneratedJsBox();
+    }
+
+    function updateGeneratedJsBox() {
+      if (!generatedJsBox) return;
+      if (!selectedPreviewElement) {
+        generatedJsBox.textContent = isArabic
+          ? '/* اختر عنصراً لعرض معالجات JavaScript */'
+          : '/* Select an element to view JS handlers */';
+        return;
+      }
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(editor.value, 'text/html');
+      const sourceEl = doc.querySelector('[data-editor-selected="1"]');
+      const attrs = ['onclick', 'ondblclick', 'onmouseenter', 'onmouseleave', 'onmouseover', 'onmouseout', 'onmousedown'];
+      const lines = [];
+      if (sourceEl) {
+        attrs.forEach(function (a) {
+          const v = sourceEl.getAttribute(a);
+          if (v) lines.push(a + ': ' + v);
+        });
+      }
+      if (!lines.length) {
+        generatedJsBox.textContent = isArabic
+          ? '/* لا توجد معالجات بعد */'
+          : '/* No inline handlers yet */';
+        return;
+      }
+      generatedJsBox.textContent = lines.join('\n');
+    }
+
+    function rebuildJsInternalPageSelect() {
+      if (!jsNavInternalPage) return;
+      const preferred = jsNavInternalPage.value;
+      const pages = Object.keys(files).filter(function (n) {
+        return /\.html?$/i.test(n);
+      });
+      jsNavInternalPage.innerHTML = pages.map(function (p) {
+        return '<option value="' + String(p).replace(/"/g, '&quot;') + '">' + String(p).replace(/</g, '') + '</option>';
+      }).join('');
+      if (preferred && pages.indexOf(preferred) !== -1) {
+        jsNavInternalPage.value = preferred;
+      }
+    }
+
+    function applyInspectorTabActive() {
+      const isCss = pendingInspectorTab !== 'js';
+      if (inspectorTabCss && inspectorTabJs) {
+        inspectorTabCss.classList.toggle('active', isCss);
+        inspectorTabJs.classList.toggle('active', !isCss);
+        inspectorTabCss.setAttribute('aria-selected', isCss ? 'true' : 'false');
+        inspectorTabJs.setAttribute('aria-selected', !isCss ? 'true' : 'false');
+      }
+      if (inspectorPaneCss && inspectorPaneJs) {
+        inspectorPaneCss.classList.toggle('hidden', !isCss);
+        inspectorPaneJs.classList.toggle('hidden', isCss);
+        inspectorPaneJs.setAttribute('aria-hidden', isCss ? 'true' : 'false');
+      }
+      if (!isCss) {
+        rebuildJsInternalPageSelect();
+      }
+    }
+
+    function syncSelectModeMenuButtons() {
+      if (menuCssSelectMode) menuCssSelectMode.classList.toggle('active', selectMode);
+      const menuJsSm = document.getElementById('menuJsSelectMode');
+      if (menuJsSm) menuJsSm.classList.toggle('active', selectMode);
+    }
+
+    function sanitizeDomIdAttr(raw) {
+      const s = String(raw || '').trim();
+      if (!/^[a-zA-Z][\w-]*$/.test(s)) return '';
+      return s;
+    }
+
     function cssPropToKebab(prop) {
       return prop.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
     }
@@ -3863,6 +4184,7 @@ self.addEventListener('fetch', (event) => {
         selectedElementInfo.textContent = isArabic ? 'لا يوجد عنصر محدد' : 'No element selected';
         stylePanel.classList.remove('show');
         updateGeneratedCssBox();
+        updateGeneratedJsBox();
         return;
       }
 
@@ -3886,6 +4208,7 @@ self.addEventListener('fetch', (event) => {
       cssControls.borderRadius.value = style.borderRadius || '';
 
       updateGeneratedCssBox();
+      updateGeneratedJsBox();
     }
 
     function selectPreviewElement(el) {
@@ -3925,6 +4248,7 @@ self.addEventListener('fetch', (event) => {
 
       highlightSelectedElement(el);
       syncStylePanelFromSelectedElement();
+      applyInspectorTabActive();
     }
 
     function resetSelectionState(removeFromEditor = false) {
@@ -3959,6 +4283,18 @@ self.addEventListener('fetch', (event) => {
       selectedElementInfo.textContent = isArabic ? 'لا يوجد عنصر محدد' : 'No element selected';
       stylePanel.classList.remove('show');
       updateGeneratedCssBox();
+      updateGeneratedJsBox();
+
+      if (removeFromEditor) {
+        selectMode = false;
+        syncSelectModeMenuButtons();
+        try {
+          const doc = previewFrameRef.contentDocument || previewFrameRef.contentWindow.document;
+          if (doc && doc.body) {
+            doc.body.style.cursor = 'default';
+          }
+        } catch (_) {}
+      }
     }
 
     function attachPreviewSelection() {
@@ -4051,12 +4387,16 @@ self.addEventListener('fetch', (event) => {
 
       const consoleBridge = `<script>(function(){var stringify=function(v){try{if(v===undefined)return'undefined';if(v===null)return'null';if(v instanceof Error)return v.stack||(v.name+': '+v.message);if(typeof v==='function')return v.toString();if(typeof v==='object')return JSON.stringify(v,function(k,val){return val===undefined?'undefined':(typeof val==='function'?'[Function]':val)},2);return String(v)}catch(_){return'[Unserializable]'}};var send=function(level,args){try{var safe=Array.prototype.map.call(args,stringify);parent.postMessage({__htmlStudioConsole:true,level:level,args:safe},'*')}catch(_){}};['log','info','warn','error','debug'].forEach(function(level){var orig=console[level];console[level]=function(){send(level,arguments);try{orig.apply(console,arguments)}catch(_){}}});window.addEventListener('error',function(e){send('error',[e.message+(e.filename?' ('+e.filename+':'+e.lineno+')':'')])});window.addEventListener('unhandledrejection',function(e){send('error',['Unhandled promise rejection: '+((e.reason&&e.reason.stack)||e.reason)])});var indirectEval=eval;window.addEventListener('message',function(ev){if(!ev.data||!ev.data.__htmlStudioEval)return;try{var result=indirectEval(ev.data.code);parent.postMessage({__htmlStudioConsole:true,level:'return',args:[stringify(result)]},'*')}catch(err){parent.postMessage({__htmlStudioConsole:true,level:'error',args:[(err&&err.stack)||(err&&err.message)||String(err)]},'*')}})})()<\/script>`;
 
+      const navBridge = `<script>(function(){function openExt(u){try{var w=window.open(u,'_blank','noopener,noreferrer');if(!w&&window.parent&&window.parent!==window){window.parent.open(u,'_blank','noopener,noreferrer')}}catch(e){try{if(window.parent&&window.parent!==window){window.parent.open(u,'_blank','noopener,noreferrer')}}catch(_){}}}function goFile(f){try{parent.postMessage({__htmlStudioNavigate:true,file:String(f)},'*')}catch(e){}}window.__htmlStudioOpenExternal=openExt;window.__htmlStudioGoToPage=goFile})()<\/script>`;
+
+      const previewBridges = consoleBridge + navBridge;
+
       if (/<head[^>]*>/i.test(html)) {
-        html = html.replace(/<head([^>]*)>/i, '<head$1>' + consoleBridge);
+        html = html.replace(/<head([^>]*)>/i, '<head$1>' + previewBridges);
       } else if (/<html[^>]*>/i.test(html)) {
-        html = html.replace(/<html([^>]*)>/i, '<html$1>' + consoleBridge);
+        html = html.replace(/<html([^>]*)>/i, '<html$1>' + previewBridges);
       } else {
-        html = consoleBridge + html;
+        html = previewBridges + html;
       }
 
       return html;
@@ -4136,7 +4476,7 @@ ${usageHint}`;
 
     function applyPreviewIframePermissions(iframeEl) {
       if (!iframeEl) return;
-      iframeEl.setAttribute('allow', 'camera *; microphone *; geolocation *');
+      iframeEl.setAttribute('allow', 'camera *; microphone *; geolocation *; fullscreen *');
     }
 
     function saveHistorySnapshot() {
@@ -4184,7 +4524,52 @@ ${usageHint}`;
       updatePreview();
     }
 
+    let insertedDomIdSeq = 100;
+
+    function makeInsertedElementIdFor(el) {
+      const tag = (el && el.tagName ? String(el.tagName) : 'el').toLowerCase();
+      return tag + '_id_' + insertedDomIdSeq++;
+    }
+
+    /** Adds stable id attributes to every element in inserted HTML that does not already have one (including media tags). */
+    function ensureInsertedHtmlHasIds(html) {
+      const raw = String(html || '');
+      if (!raw.trim()) return raw;
+
+      function stamp(el) {
+        if (!el || el.nodeType !== 1) return;
+        if (!el.id) el.id = makeInsertedElementIdFor(el);
+        const kids = el.children;
+        for (let i = 0; i < kids.length; i++) stamp(kids[i]);
+      }
+
+      const trimmed = raw.trim();
+      let doc;
+
+      if (/^<(!DOCTYPE|html)\b/i.test(trimmed)) {
+        doc = new DOMParser().parseFromString(raw, 'text/html');
+        if (doc.documentElement) stamp(doc.documentElement);
+        return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+      }
+
+      doc = new DOMParser().parseFromString(
+        '<!DOCTYPE html><html><head></head><body>' + raw + '</body></html>',
+        'text/html'
+      );
+      const body = doc.body;
+      if (!body) return raw;
+      for (let i = 0; i < body.children.length; i++) {
+        stamp(body.children[i]);
+      }
+      return body.innerHTML;
+    }
+
     function insertAtCursor(text) {
+      let payload = String(text);
+      if (currentFileName.toLowerCase().endsWith('.html') && !isViewingAssetFile) {
+        payload = ensureInsertedHtmlHasIds(payload);
+      }
+
       const start = editor.selectionStart;
       const end = editor.selectionEnd;
       const before = editor.value.substring(0, start);
@@ -4192,9 +4577,9 @@ ${usageHint}`;
 
       saveHistorySnapshot();
 
-      editor.value = before + text + after;
+      editor.value = before + payload + after;
       editor.focus();
-      editor.selectionStart = editor.selectionEnd = start + text.length;
+      editor.selectionStart = editor.selectionEnd = start + payload.length;
 
       lastSavedValue = editor.value;
       syncHighlight();
@@ -4484,6 +4869,137 @@ ${usageHint}`;
       });
     }
 
+    function bindJsInspectorControls() {
+      const jsApplyNavInternal = document.getElementById('jsApplyNavInternal');
+      const jsApplyNavExternal = document.getElementById('jsApplyNavExternal');
+      const jsApplyInnerHtml = document.getElementById('jsApplyInnerHtml');
+      const jsApplyClickColor = document.getElementById('jsApplyClickColor');
+      const jsApplyToggleHide = document.getElementById('jsApplyToggleHide');
+      const jsApplyHoverOutline = document.getElementById('jsApplyHoverOutline');
+      const jsApplyPlayMedia = document.getElementById('jsApplyPlayMedia');
+
+      if (jsApplyNavInternal) {
+        jsApplyNavInternal.addEventListener('click', function () {
+          if (!selectedPreviewElement) return;
+          const page = (jsNavInternalPage && jsNavInternalPage.value) || '';
+          if (!page) {
+            alert(isArabic ? 'لا توجد صفحة HTML في المشروع' : 'No HTML page in this project');
+            return;
+          }
+          applyInlineAttrToSelection('onclick', '__htmlStudioGoToPage(' + jsStringSingleQuoted(page) + ')', true);
+        });
+      }
+
+      if (jsApplyNavExternal) {
+        jsApplyNavExternal.addEventListener('click', function () {
+          if (!selectedPreviewElement) return;
+          const u = (jsNavExternalUrl && jsNavExternalUrl.value.trim()) || '';
+          if (!u) {
+            alert(isArabic ? 'الرجاء إدخال رابط' : 'Please enter a URL');
+            return;
+          }
+          applyInlineAttrToSelection('onclick', '__htmlStudioOpenExternal(' + jsStringSingleQuoted(u) + ')', true);
+        });
+      }
+
+      if (jsApplyInnerHtml) {
+        jsApplyInnerHtml.addEventListener('click', function () {
+          if (!selectedPreviewElement) return;
+          const idRaw = jsInnerHtmlTargetId ? jsInnerHtmlTargetId.value : '';
+          const sid = sanitizeDomIdAttr(idRaw);
+          if (!sid) {
+            alert(isArabic
+              ? 'أدخل معرف العنصر المستهدف (مثل outputBox)'
+              : 'Enter the target element id (e.g. outputBox)');
+            return;
+          }
+          const t = jsInnerHtmlInput ? jsInnerHtmlInput.value : '';
+          const snippet = "var _t=document.getElementById('" + sid.replace(/'/g, "\\'") + "');if(_t)_t.innerHTML=" + jsStringSingleQuoted(t) + ";";
+          applyInlineAttrToSelection('onclick', snippet, true);
+        });
+      }
+
+      if (jsApplyClickColor) {
+        jsApplyClickColor.addEventListener('click', function () {
+          if (!selectedPreviewElement) return;
+          const c = (jsClickColor && jsClickColor.value) ? jsClickColor.value : '#000000';
+          applyInlineAttrToSelection('onclick', 'this.style.color = ' + jsStringSingleQuoted(c), true);
+        });
+      }
+
+      if (jsApplyToggleHide) {
+        jsApplyToggleHide.addEventListener('click', function () {
+          if (!selectedPreviewElement) return;
+          const idRaw = jsToggleTargetId ? jsToggleTargetId.value : '';
+          const sid = sanitizeDomIdAttr(idRaw);
+          if (!sid) {
+            alert(isArabic
+              ? 'أدخل معرف العنصر لإظهاره/إخفائه'
+              : 'Enter the id of the element to show or hide');
+            return;
+          }
+          const snippet = "var _t=document.getElementById('" + sid.replace(/'/g, "\\'") + "');if(_t)_t.hidden=!_t.hidden;";
+          applyInlineAttrToSelection('onclick', snippet, true);
+        });
+      }
+
+      if (jsApplyHoverOutline) {
+        jsApplyHoverOutline.addEventListener('click', function () {
+          if (!selectedPreviewElement) return;
+          applyInlineAttrToSelection('onmouseenter', "this.style.outline='2px solid #2563eb'", true);
+          applyInlineAttrToSelection('onmouseleave', "this.style.outline=''", true);
+        });
+      }
+
+      if (jsApplyPlayMedia) {
+        jsApplyPlayMedia.addEventListener('click', function () {
+          if (!selectedPreviewElement) return;
+          const idRaw = jsMediaId ? jsMediaId.value : '';
+          const sid = sanitizeDomIdAttr(idRaw);
+          let snippet;
+          if (sid) {
+            snippet = "var _m=document.getElementById('" + sid.replace(/'/g, "\\'") + "');if(_m&&_m.play)_m.play();";
+          } else if (/^(audio|video)$/i.test(selectedPreviewElement.tagName)) {
+            snippet = 'if (this.play) this.play();';
+          } else {
+            alert(isArabic
+              ? 'اختر عنصر صوت/فيديو أو أدخل معرف العنصر (مثل myVideo)'
+              : 'Select an audio/video element, or enter its id (e.g. myVideo)');
+            return;
+          }
+          applyInlineAttrToSelection('onclick', snippet, true);
+        });
+      }
+
+      if (clearJsHandlersBtn) {
+        clearJsHandlersBtn.addEventListener('click', function () {
+          if (!selectedPreviewElement) return;
+          const attrs = ['onclick', 'ondblclick', 'onmouseenter', 'onmouseleave', 'onmouseover', 'onmouseout', 'onmousedown'];
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(editor.value, 'text/html');
+          const sourceEl = doc.querySelector('[data-editor-selected="1"]');
+          if (!sourceEl) return;
+          attrs.forEach(function (a) { sourceEl.removeAttribute(a); });
+
+          editor.value = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+          lastSavedValue = editor.value;
+          syncHighlight();
+          updateCursorStatus();
+
+          try {
+            const markedPreviewEl = previewFrameRef.contentDocument.querySelector('[data-editor-selected="1"]');
+            if (markedPreviewEl) {
+              attrs.forEach(function (a) { markedPreviewEl.removeAttribute(a); });
+            }
+          } catch (_) {}
+
+          highlightSelectedElement(selectedPreviewElement);
+          updateGeneratedCssBox();
+          updateGeneratedJsBox();
+        });
+      }
+    }
+
     function applyTagSelectorLabels() {
       for (let i = 0; i < tagSelector.options.length; i++) {
         const opt = tagSelector.options[i];
@@ -4513,17 +5029,39 @@ ${usageHint}`;
       document.getElementById('menuBarFile').textContent = isArabic ? 'ملف' : 'File';
       document.getElementById('menuBarHtml').textContent = isArabic ? 'HTML' : 'HTML';
       document.getElementById('menuBarCss').textContent = isArabic ? 'CSS' : 'CSS';
+      const menuBarJsEl = document.getElementById('menuBarJs');
+      if (menuBarJsEl) menuBarJsEl.textContent = isArabic ? 'JavaScript' : 'JavaScript';
+      const menuCssSelectModeEl = document.getElementById('menuCssSelectMode');
+      if (menuCssSelectModeEl) {
+        menuCssSelectModeEl.textContent = isArabic ? 'اختر عنصراً في المعاينة' : 'Select element in preview';
+      }
+      const menuJsSelectModeEl = document.getElementById('menuJsSelectMode');
+      if (menuJsSelectModeEl) {
+        menuJsSelectModeEl.textContent = isArabic ? 'اختر عنصراً في المعاينة' : 'Select element in preview';
+      }
       document.getElementById('menuBarView').textContent = isArabic ? 'عرض' : 'View';
       document.getElementById('menuBarOptions').textContent = isArabic ? 'خيارات' : 'Options';
       document.getElementById('menuBarGithub').textContent = 'GitHub';
       document.getElementById('menuGhOpenPanel').textContent = isArabic ? 'فتح لوحة المزامنة والإعدادات…' : 'Open sync & settings…';
       document.getElementById('menuGhSyncTitle').textContent = isArabic ? 'مزامنة المستودع' : 'Repository sync';
-      document.getElementById('menuGhAdd').textContent = isArabic ? 'إضافة (تجهيز)' : 'Add';
-      document.getElementById('menuGhCommit').textContent = isArabic ? 'التزام' : 'Commit';
-      document.getElementById('menuGhPush').textContent = isArabic ? 'دفع' : 'Push';
-      document.getElementById('menuGhPull').textContent = isArabic ? 'سحب' : 'Pull';
-      document.getElementById('menuGhStatus').textContent = isArabic ? 'حالة' : 'Status';
-      document.getElementById('menuGhCheckout').textContent = isArabic ? 'تبديل فرع…' : 'Checkout branch…';
+      document.getElementById('menuGhAdd').textContent = isArabic
+        ? 'git add — إضافة (تجهيز)'
+        : 'git add — Stage changes';
+      document.getElementById('menuGhCommit').textContent = isArabic
+        ? 'git commit — التزام'
+        : 'git commit — Create commit';
+      document.getElementById('menuGhPush').textContent = isArabic
+        ? 'git push — دفع إلى GitHub'
+        : 'git push — Upload to GitHub';
+      document.getElementById('menuGhPull').textContent = isArabic
+        ? 'git pull — سحب من GitHub'
+        : 'git pull — Download from GitHub';
+      document.getElementById('menuGhStatus').textContent = isArabic
+        ? 'git status — عرض الحالة'
+        : 'git status — View state';
+      document.getElementById('menuGhCheckout').textContent = isArabic
+        ? 'git checkout — تبديل الفرع…'
+        : 'git checkout — Switch branch…';
       document.getElementById('menuFileNew').textContent = isArabic ? 'ملف جديد' : 'New file';
       document.getElementById('menuFileDelete').textContent = isArabic ? 'حذف الملف' : 'Delete file';
       document.getElementById('menuFileSaveJson').textContent = isArabic ? 'حفظ المشروع (JSON)' : 'Save project (JSON)';
@@ -4552,7 +5090,11 @@ ${usageHint}`;
       document.getElementById('closeModalBtn').textContent = isArabic ? 'إغلاق' : 'Close';
       document.getElementById('copySnippetBtn').textContent = isArabic ? 'نسخ الكود' : 'Copy Code';
       document.getElementById('insertSnippetBtn').textContent = isArabic ? 'إدراج في المحرر' : 'Insert Into Editor';
-      document.getElementById('stylePanelTitle').textContent = isArabic ? 'خصائص العنصر' : 'Element Styles';
+      document.getElementById('stylePanelTitle').textContent = isArabic ? 'مفتش العنصر' : 'Element inspector';
+      const tabCss = document.getElementById('inspectorTabCss');
+      const tabJs = document.getElementById('inspectorTabJs');
+      if (tabCss) tabCss.textContent = isArabic ? 'CSS' : 'CSS';
+      if (tabJs) tabJs.textContent = isArabic ? 'JavaScript' : 'JavaScript';
       document.getElementById('groupTextTitle').textContent = isArabic ? 'النص' : 'Text';
       document.getElementById('groupBoxTitle').textContent = isArabic ? 'الصندوق' : 'Box';
       document.getElementById('groupSpacingTitle').textContent = isArabic ? 'المسافات' : 'Spacing';
@@ -4573,6 +5115,77 @@ ${usageHint}`;
       document.getElementById('groupGeneratedCssTitle').textContent = isArabic ? 'CSS الناتج' : 'Generated CSS';
       document.getElementById('labelGeneratedCss').textContent = isArabic ? 'كود CSS' : 'CSS Code';
 
+      const gNav = document.getElementById('groupJsNavTitle');
+      if (gNav) gNav.textContent = isArabic ? 'التنقل' : 'Navigation';
+      const lblIn = document.getElementById('labelJsInternal');
+      if (lblIn) lblIn.textContent = isArabic ? 'فتح صفحة من المشروع (نفس التبويب)' : 'Open project page (same tab)';
+      const btnIn = document.getElementById('jsApplyNavInternal');
+      if (btnIn) btnIn.textContent = isArabic ? 'تطبيق عند النقر' : 'Apply on click';
+      const lblEx = document.getElementById('labelJsExternal');
+      if (lblEx) lblEx.textContent = isArabic ? 'رابط خارجي (تبويب جديد)' : 'External URL (new tab)';
+      const btnEx = document.getElementById('jsApplyNavExternal');
+      if (btnEx) btnEx.textContent = isArabic ? 'تطبيق عند النقر' : 'Apply on click';
+      const gCont = document.getElementById('groupJsContentTitle');
+      if (gCont) gCont.textContent = isArabic ? 'المحتوى والظهور' : 'Content & visibility';
+      const lblInnerTgt = document.getElementById('labelJsInnerHtmlTarget');
+      if (lblInnerTgt) {
+        lblInnerTgt.textContent = isArabic ? 'معرف العنصر المستهدف (تغيير المحتوى)' : 'Target element id (inner HTML)';
+      }
+      const lblInner = document.getElementById('labelJsInnerHtml');
+      if (lblInner) {
+        lblInner.textContent = isArabic ? 'HTML الجديد داخل ذلك العنصر' : 'New HTML inside that element';
+      }
+      const btnInner = document.getElementById('jsApplyInnerHtml');
+      if (btnInner) btnInner.textContent = isArabic ? 'تطبيق عند النقر' : 'Apply on click';
+      const lblCc = document.getElementById('labelJsClickColor');
+      if (lblCc) lblCc.textContent = isArabic ? 'لون النص عند النقر' : 'Text color on click';
+      const btnCc = document.getElementById('jsApplyClickColor');
+      if (btnCc) btnCc.textContent = isArabic ? 'تطبيق عند النقر' : 'Apply on click';
+      const lblTogTgt = document.getElementById('labelJsToggleTarget');
+      if (lblTogTgt) {
+        lblTogTgt.textContent = isArabic ? 'معرف العنصر (إظهار / إخفاء)' : 'Target element id (show / hide)';
+      }
+      const btnTog = document.getElementById('jsApplyToggleHide');
+      if (btnTog) {
+        btnTog.textContent = isArabic
+          ? 'تطبيق عند النقر: تبديل إخفاء العنصر المستهدف'
+          : 'Apply on click: toggle target hidden';
+      }
+      const gHov = document.getElementById('groupJsHoverTitle');
+      if (gHov) gHov.textContent = isArabic ? 'عند التمرير' : 'Hover';
+      const btnHov = document.getElementById('jsApplyHoverOutline');
+      if (btnHov) btnHov.textContent = isArabic ? 'إطار عند التمرير (دخول / خروج)' : 'Add hover outline (enter / leave)';
+      const gMed = document.getElementById('groupJsMediaTitle');
+      if (gMed) gMed.textContent = isArabic ? 'صوت / فيديو' : 'Audio / video';
+      const hintMed = document.getElementById('jsMediaHint');
+      if (hintMed) {
+        hintMed.textContent = isArabic
+          ? 'أدخل معرف عنصر الوسائط، أو اختر عنصر audio/video واترك الحقل فارغاً لاستخدام this.play().'
+          : 'Enter a media element id, or select an audio/video element and leave the id blank to use this.play().';
+      }
+      const lblMed = document.getElementById('labelJsMediaId');
+      if (lblMed) lblMed.textContent = isArabic ? 'معرف عنصر الوسائط' : 'Media element id';
+      const btnMed = document.getElementById('jsApplyPlayMedia');
+      if (btnMed) btnMed.textContent = isArabic ? 'تطبيق عند النقر: تشغيل' : 'Apply on click: play';
+      const gMore = document.getElementById('groupJsMoreTitle');
+      if (gMore) gMore.textContent = isArabic ? 'أفكار إضافية (يدوياً في الكود)' : 'More you can code by hand';
+      const m1 = document.getElementById('jsMoreItem1');
+      if (m1) m1.textContent = isArabic ? 'element.classList.toggle(\'active\')' : 'element.classList.toggle(\'active\')';
+      const m2 = document.getElementById('jsMoreItem2');
+      if (m2) m2.textContent = isArabic ? 'document.getElementById(\'x\').focus()' : 'document.getElementById(\'x\').focus()';
+      const m3 = document.getElementById('jsMoreItem3');
+      if (m3) m3.textContent = isArabic ? 'target.scrollIntoView({ behavior: \'smooth\' })' : 'target.scrollIntoView({ behavior: \'smooth\' })';
+      const m4 = document.getElementById('jsMoreItem4');
+      if (m4) m4.textContent = isArabic ? 'myDialog.showModal() (عنصر dialog)' : 'myDialog.showModal() (HTML dialog)';
+      const m5 = document.getElementById('jsMoreItem5');
+      if (m5) m5.textContent = isArabic ? 'navigator.clipboard.writeText(\'…\')' : 'navigator.clipboard.writeText(\'…\')';
+      const gGenJs = document.getElementById('groupJsGeneratedTitle');
+      if (gGenJs) gGenJs.textContent = isArabic ? 'المعالجات الحالية' : 'Current handlers';
+      const lblGenJs = document.getElementById('labelGeneratedJs');
+      if (lblGenJs) lblGenJs.textContent = isArabic ? 'معالجات مضمنة (للقراءة)' : 'Inline handlers (read-only)';
+      const clrJs = document.getElementById('clearJsHandlersBtn');
+      if (clrJs) clrJs.textContent = isArabic ? 'مسح معالجات JS' : 'Clear JS handlers';
+
       document.getElementById('clearStylesBtn').textContent = isArabic ? 'مسح التنسيقات' : 'Clear Styles';
       document.getElementById('closeStylePanelBtn').textContent = isArabic ? 'إغلاق اللوحة' : 'Close Panel';
       document.getElementById('footerText').textContent = isArabic
@@ -4592,6 +5205,7 @@ ${usageHint}`;
       }
 
       updateGeneratedCssBox();
+      updateGeneratedJsBox();
       updateCursorStatus();
       updatePreview();
 
@@ -4701,8 +5315,9 @@ ${usageHint}`;
 
     document.getElementById('menuCssSelectMode').addEventListener('click', () => {
       closeAllMenus();
+      pendingInspectorTab = 'css';
       selectMode = !selectMode;
-      menuCssSelectMode.classList.toggle('active', selectMode);
+      syncSelectModeMenuButtons();
 
       try {
         const doc = previewFrameRef.contentDocument || previewFrameRef.contentWindow.document;
@@ -4715,6 +5330,37 @@ ${usageHint}`;
         resetSelectionState(true);
       }
     });
+
+    document.getElementById('menuJsSelectMode').addEventListener('click', () => {
+      closeAllMenus();
+      pendingInspectorTab = 'js';
+      selectMode = !selectMode;
+      syncSelectModeMenuButtons();
+
+      try {
+        const doc = previewFrameRef.contentDocument || previewFrameRef.contentWindow.document;
+        if (doc && doc.body) {
+          doc.body.style.cursor = selectMode ? 'crosshair' : 'default';
+        }
+      } catch (err) {}
+
+      if (!selectMode) {
+        resetSelectionState(true);
+      }
+    });
+
+    if (inspectorTabCss) {
+      inspectorTabCss.addEventListener('click', function () {
+        pendingInspectorTab = 'css';
+        applyInspectorTabActive();
+      });
+    }
+    if (inspectorTabJs) {
+      inspectorTabJs.addEventListener('click', function () {
+        pendingInspectorTab = 'js';
+        applyInspectorTabActive();
+      });
+    }
 
     function closeAllMenus() {
       document.querySelectorAll('.menu-panel').forEach(function (p) {
@@ -8841,6 +9487,14 @@ document.getElementById("restartBtn").addEventListener("click", function(){
 
     window.addEventListener('message', function(ev) {
       const data = ev.data;
+      if (data && data.__htmlStudioNavigate && typeof data.file === 'string') {
+        const file = data.file.trim();
+        if (file && Object.prototype.hasOwnProperty.call(files, file)) {
+          saveCurrentFileContent();
+          loadFileIntoEditor(file);
+        }
+        return;
+      }
       if (!data || !data.__htmlStudioConsole) return;
       appendConsoleLine(data.level || 'log', data.args || []);
     });
@@ -9301,10 +9955,18 @@ document.getElementById("restartBtn").addEventListener("click", function(){
       document.getElementById('ghBranchLabel').textContent = isArabic ? 'الفرع'          : 'Branch';
       document.getElementById('ghMessageLabel').textContent = isArabic ? 'رسالة الالتزام' : 'Commit Message';
       ghConnectBtn.textContent  = isArabic ? 'اتصال'                    : 'Connect';
-      ghPullBtn.textContent     = isArabic ? 'سحب الملفات'              : 'Pull Files';
-      ghStashBtn.textContent    = isArabic ? 'حفظ نسخة'                 : 'Stash';
-      ghPopStashBtn.textContent = isArabic ? 'استعادة الأخيرة'         : 'Restore Last';
-      ghCommitBtn.textContent   = isArabic ? 'التزام ودفع' : 'Commit & push';
+      ghPullBtn.textContent     = isArabic
+        ? 'git pull — سحب الملفات'
+        : 'git pull — Pull files';
+      ghStashBtn.textContent    = isArabic
+        ? 'git stash — حفظ نسخة'
+        : 'git stash — Save copy';
+      ghPopStashBtn.textContent = isArabic
+        ? 'git stash pop — استعادة الأخيرة'
+        : 'git stash pop — Restore last';
+      ghCommitBtn.textContent   = isArabic
+        ? 'git commit و git push — التزام ودفع'
+        : 'git commit & git push — Send to GitHub';
       document.getElementById('githubStashTitle').textContent = isArabic ? 'النسخ المحفوظة' : 'Saved stashes';
       document.getElementById('consoleTitle').textContent = isArabic ? 'الكونسول' : 'Console';
       consoleClearBtn.textContent = isArabic ? 'مسح'   : 'Clear';
@@ -9436,6 +10098,7 @@ document.getElementById("restartBtn").addEventListener("click", function(){
     } catch (_) {}
 
     bindCssControls();
+    bindJsInspectorControls();
     refreshFileSelector();
     rebuildFormsSelector();
     rebuildMenuLayoutSelector();
