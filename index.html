@@ -729,6 +729,42 @@
       line-height: 1.4;
     }
 
+    .js-sound-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .js-sound-btn {
+      flex: 1 1 calc(50% - 6px);
+      min-width: 72px;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #1e293b;
+    }
+
+    .js-sound-btn:hover {
+      background: #e0f2fe;
+      border-color: #2563eb;
+      color: #1d4ed8;
+    }
+
+    body.dark-studio .js-sound-btn {
+      background: #1e293b;
+      border-color: #475569;
+      color: #e2e8f0;
+    }
+
+    body.dark-studio .js-sound-btn:hover {
+      background: #334155;
+      border-color: #60a5fa;
+    }
+
     .js-more-list {
       margin: 0;
       padding-inline-start: 18px;
@@ -824,6 +860,35 @@
     .modal-body {
       padding: 16px;
       overflow: auto;
+    }
+
+    .about-modal-body {
+      font-size: 14px;
+      line-height: 1.65;
+      color: #374151;
+    }
+
+    .about-modal-body p {
+      margin: 0 0 10px;
+    }
+
+    .about-modal-body .about-verse {
+      font-size: 15px;
+      color: #1f2937;
+      padding: 12px 14px;
+      margin: 12px 0 14px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    #aboutEmail a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    #aboutEmail a:hover {
+      text-decoration: underline;
     }
 
     .modal-body pre,
@@ -1385,6 +1450,19 @@
     #consoleBtn      { background: #475569; }
     /* GitHub uses same top menu style as File / HTML / … */
     #apiBtn          { background: #db2777; }
+    #exportApkBtn    { background: #7c3aed; }
+
+    #fileSelector {
+      min-width: 140px;
+    }
+
+    #groupImageAlign.hidden-group {
+      display: none;
+    }
+
+    #inspectorPaneJs .css-group.hidden-group {
+      display: none !important;
+    }
     #consoleBtn.active   { background: #0ea5e9; }
 
     /* ===== API Tester ===== */
@@ -1874,10 +1952,12 @@
         <button type="button" class="menu-bar-btn" id="menuBarFile" data-menu-root="file" aria-expanded="false" aria-haspopup="true">File</button>
         <div class="menu-panel" id="menuPanelFile" hidden>
           <button type="button" class="menu-panel-btn" id="menuFileNew">New file</button>
+          <button type="button" class="menu-panel-btn" id="menuFileRename">Rename file</button>
           <button type="button" class="menu-panel-btn" id="menuFileDelete">Delete file</button>
           <button type="button" class="menu-panel-btn" id="menuFileSaveJson">Save project (JSON)</button>
           <button type="button" class="menu-panel-btn" id="menuFileExportAll">Export project (ZIP)</button>
           <button type="button" class="menu-panel-btn" id="menuFileLoad">Load project (JSON or ZIP)…</button>
+          <button type="button" class="menu-panel-btn" id="menuFileAbout">About</button>
           <input type="file" id="loadFile" accept=".html,.txt,.css,.js,.json,.zip,application/zip" hidden>
         </div>
       </div>
@@ -1975,12 +2055,13 @@
       <option value="mobile">Mobile frame</option>
     </select>
 
-    <select id="fileSelector"></select>
+    <select id="fileSelector" title="Project files" aria-label="Project files"></select>
     <label for="imageUploadInput" id="imageUploadLabel">Upload Media (Image/Video/Audio)</label>
     <input type="file" id="imageUploadInput" accept="image/*,video/*,audio/*" multiple>
 
     <button type="button" id="mobileFeaturesBtn">Mobile Features</button>
     <button type="button" id="apiBtn">API</button>
+    <button type="button" id="exportApkBtn">Export APK</button>
 
     <div class="legacy-hidden-tools" aria-hidden="true">
       <select id="menuLayoutSelector" title="Insert site navigation (side or top menu)">
@@ -2003,19 +2084,8 @@
           <pre id="highlightedPre" class="language-html"><code id="highlightedCode" class="language-html"></code></pre>
           <textarea id="editor" class="editor-textarea" spellcheck="false" autocomplete="off"><!DOCTYPE html>
 <html>
-<head>
-  <style>
-    h1 { 
-        color: #2563eb;
-       }
-  </style>
-</head>
 <body>
-  <div class="card">
-    <h1>Hello World! 👋</h1>
-    <p>Edit this code and click <b>Run</b>.</p>
-    <button>Sample Button</button>
-  </div>
+  <h1>Hello World! 👋</h1>
 </body>
 </html></textarea>
         </div>
@@ -2085,6 +2155,19 @@
                     <option value="center">center</option>
                     <option value="right">right</option>
                     <option value="justify">justify</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="css-group hidden-group" id="groupImageAlign">
+                <div class="css-group-title" id="groupImageAlignTitle">Image position</div>
+                <div class="field">
+                  <label for="cssImageAlign" id="labelImageAlign">Align image</label>
+                  <select id="cssImageAlign">
+                    <option value="">Default</option>
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
                   </select>
                 </div>
               </div>
@@ -2195,6 +2278,17 @@
                   </div>
                 </div>
                 <div class="css-group">
+                  <div class="css-group-title" id="groupJsSoundTitle">Click sound</div>
+                  <p class="js-panel-hint" id="jsSoundHint">Pick a sound, then apply it to the selected element’s click handler (no audio files needed).</p>
+                  <div class="js-sound-grid" id="jsSoundGrid">
+                    <button type="button" class="js-sound-btn" data-sound="beep">Beep</button>
+                    <button type="button" class="js-sound-btn" data-sound="tick">Tick</button>
+                    <button type="button" class="js-sound-btn" data-sound="pop">Pop</button>
+                    <button type="button" class="js-sound-btn" data-sound="success">Success</button>
+                    <button type="button" class="js-sound-btn" data-sound="buzz">Buzz</button>
+                  </div>
+                </div>
+                <div class="css-group hidden-group" id="groupJsHover">
                   <div class="css-group-title" id="groupJsHoverTitle">Hover</div>
                   <div class="field">
                     <button type="button" class="js-apply-btn" id="jsApplyHoverOutline">Add hover outline (enter / leave)</button>
@@ -2209,7 +2303,7 @@
                     <button type="button" class="js-apply-btn" id="jsApplyPlayMedia">Apply click: play</button>
                   </div>
                 </div>
-                <div class="css-group">
+                <div class="css-group hidden-group" id="groupJsMore">
                   <div class="css-group-title" id="groupJsMoreTitle">More you can code by hand</div>
                   <ul class="js-more-list" id="jsMoreList">
                     <li id="jsMoreItem1">element.classList.toggle('active')</li>
@@ -2270,6 +2364,23 @@
       <div class="modal-footer">
         <button id="copySnippetBtn">Copy Code</button>
         <button id="insertSnippetBtn">Insert Into Editor</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="aboutModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="aboutTitle">About</span>
+        <button type="button" id="closeAboutBtn">Close</button>
+      </div>
+      <div class="modal-body about-modal-body">
+        <p id="aboutCredit"></p>
+        <p id="aboutSchool"></p>
+        <p id="aboutLocation"></p>
+        <p id="aboutVerse" lang="ar" dir="rtl" class="about-verse">رب اغفر لي ولوالدي رب ارحمهما كما ربياني صغيرا</p>
+        <p id="aboutContactLabel"></p>
+        <p id="aboutEmail"><a href="mailto:yarubw@yahoo.com">yarubw@yahoo.com</a></p>
       </div>
     </div>
   </div>
@@ -2653,6 +2764,7 @@
       fontSize: document.getElementById('cssFontSize'),
       fontWeight: document.getElementById('cssFontWeight'),
       textAlign: document.getElementById('cssTextAlign'),
+      imageAlign: document.getElementById('cssImageAlign'),
       width: document.getElementById('cssWidth'),
       height: document.getElementById('cssHeight'),
       display: document.getElementById('cssDisplay'),
@@ -2661,6 +2773,8 @@
       border: document.getElementById('cssBorder'),
       borderRadius: document.getElementById('cssBorderRadius')
     };
+    const groupImageAlign = document.getElementById('groupImageAlign');
+    const exportApkBtn = document.getElementById('exportApkBtn');
 
     let previewFrameRef = document.getElementById('previewFrame');
     let currentSnippet = '';
@@ -2681,19 +2795,8 @@
 
     const defaultCode = `<!DOCTYPE html>
 <html>
-<head>
-  <style>
-    h1 { 
-        color: #2563eb;
-       }
-  </style>
-</head>
 <body>
-  <div class="card">
-    <h1>Hello World! 👋</h1>
-    <p>Edit this code and click <b>Run</b>.</p>
-    <button>Sample Button</button>
-  </div>
+  <h1>Hello World! 👋</h1>
 </body>
 </html>`;
 
@@ -3966,6 +4069,12 @@ self.addEventListener('fetch', (event) => {
         ['border-radius', style.borderRadius]
       ];
 
+      if (selectedPreviewElement.tagName.toLowerCase() === 'img') {
+        cssMap.push(['float', style.float]);
+        cssMap.push(['margin-left', style.marginLeft]);
+        cssMap.push(['margin-right', style.marginRight]);
+      }
+
       cssMap.forEach(([prop, value]) => {
         if (value && value.trim() !== '') {
           cssLines.push(`  ${prop}: ${value};`);
@@ -4101,6 +4210,15 @@ self.addEventListener('fetch', (event) => {
       if (menuCssSelectMode) menuCssSelectMode.classList.toggle('active', selectMode);
       const menuJsSm = document.getElementById('menuJsSelectMode');
       if (menuJsSm) menuJsSm.classList.toggle('active', selectMode);
+    }
+
+    function disablePreviewSelectMode() {
+      selectMode = false;
+      syncSelectModeMenuButtons();
+      try {
+        const doc = previewFrameRef.contentDocument || previewFrameRef.contentWindow.document;
+        if (doc && doc.body) doc.body.style.cursor = 'default';
+      } catch (_) {}
     }
 
     function sanitizeDomIdAttr(raw) {
@@ -4411,8 +4529,46 @@ self.addEventListener('fetch', (event) => {
       cssControls.border.value = style.border || '';
       cssControls.borderRadius.value = style.borderRadius || '';
 
+      const isImg = selectedPreviewElement.tagName.toLowerCase() === 'img';
+      if (groupImageAlign) {
+        groupImageAlign.classList.toggle('hidden-group', !isImg);
+      }
+      if (cssControls.imageAlign) {
+        cssControls.imageAlign.value = isImg ? detectImageAlignFromElement(selectedPreviewElement) : '';
+      }
+
       updateGeneratedCssBox();
       updateGeneratedJsBox();
+    }
+
+    function detectImageAlignFromElement(el) {
+      if (!el || el.tagName.toLowerCase() !== 'img') return '';
+      const s = el.style;
+      const win = el.ownerDocument && el.ownerDocument.defaultView;
+      const computed = win ? win.getComputedStyle(el) : null;
+      const fl = String(s.float || (computed && computed.float) || '').toLowerCase();
+      if (fl === 'left') return 'left';
+      if (fl === 'right') return 'right';
+      const disp = String(s.display || (computed && computed.display) || '').toLowerCase();
+      const ml = s.marginLeft || (computed && computed.marginLeft) || '';
+      const mr = s.marginRight || (computed && computed.marginRight) || '';
+      if (disp === 'block' && ml === 'auto' && mr === 'auto') return 'center';
+      return '';
+    }
+
+    function applyImageAlign(align) {
+      if (!selectedPreviewElement || selectedPreviewElement.tagName.toLowerCase() !== 'img') return;
+      const patches = {
+        left: { float: 'left', display: '', marginLeft: '', marginRight: '1rem' },
+        center: { float: '', display: 'block', marginLeft: 'auto', marginRight: 'auto' },
+        right: { float: 'right', display: '', marginLeft: '1rem', marginRight: '' },
+        '': { float: '', display: '', marginLeft: '', marginRight: '' }
+      };
+      const patch = Object.prototype.hasOwnProperty.call(patches, align) ? patches[align] : patches[''];
+      Object.keys(patch).forEach(function (prop) {
+        applyCssToSelectedElement(prop, patch[prop]);
+      });
+      if (cssControls.imageAlign) cssControls.imageAlign.value = align;
     }
 
     function selectPreviewElement(el) {
@@ -4488,17 +4644,7 @@ self.addEventListener('fetch', (event) => {
       stylePanel.classList.remove('show');
       updateGeneratedCssBox();
       updateGeneratedJsBox();
-
-      if (removeFromEditor) {
-        selectMode = false;
-        syncSelectModeMenuButtons();
-        try {
-          const doc = previewFrameRef.contentDocument || previewFrameRef.contentWindow.document;
-          if (doc && doc.body) {
-            doc.body.style.cursor = 'default';
-          }
-        } catch (_) {}
-      }
+      disablePreviewSelectMode();
     }
 
     function attachPreviewSelection() {
@@ -4903,6 +5049,55 @@ ${usageHint}`;
       loadFileIntoEditor(fileName);
     }
 
+    function renameReferencesInProject(oldName, newName) {
+      const esc = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp('((?:src|href)=["\'])' + esc + '(["\'])', 'gi');
+      Object.keys(files).forEach(function (fn) {
+        const content = files[fn];
+        if (typeof content !== 'string') return;
+        if (isMediaFile(fn) && content.startsWith('data:')) return;
+        files[fn] = content.replace(re, '$1' + newName + '$2');
+      });
+    }
+
+    function renameCurrentFileFlow() {
+      saveCurrentFileContent();
+      const oldName = currentFileName;
+      const newName = prompt(
+        isArabic ? 'اسم الملف الجديد:' : 'New file name:',
+        oldName
+      );
+      if (!newName) return;
+      const trimmed = newName.trim();
+      if (!trimmed || trimmed === oldName) return;
+      if (!/^[\w.\-]+$/i.test(trimmed) || trimmed.includes('..')) {
+        alert(isArabic ? 'اسم ملف غير صالح' : 'Invalid file name');
+        return;
+      }
+      if (Object.prototype.hasOwnProperty.call(files, trimmed)) {
+        alert(isArabic ? 'الملف موجود بالفعل' : 'File already exists');
+        return;
+      }
+      files[trimmed] = files[oldName];
+      delete files[oldName];
+      renameReferencesInProject(oldName, trimmed);
+      loadFileIntoEditor(trimmed);
+    }
+
+    function deleteCurrentFileFlow() {
+      const names = Object.keys(files);
+      if (names.length <= 1) {
+        alert(isArabic ? 'يجب أن يبقى ملف واحد على الأقل' : 'At least one file must remain');
+        return;
+      }
+      if (!confirm((isArabic ? 'حذف الملف: ' : 'Delete file: ') + currentFileName + '?')) return;
+      delete files[currentFileName];
+      const next =
+        names.find(function (n) { return n !== currentFileName && n.toLowerCase().endsWith('.html'); }) ||
+        names.find(function (n) { return n !== currentFileName; });
+      loadFileIntoEditor(next);
+    }
+
     function openModal(key, code) {
       currentSnippetKey = key;
       currentSnippet = normalizeSnippetCode(code);
@@ -5039,6 +5234,12 @@ ${usageHint}`;
         applyCssToSelectedElement('textAlign', this.value);
       });
 
+      if (cssControls.imageAlign) {
+        cssControls.imageAlign.addEventListener('change', function () {
+          applyImageAlign(this.value);
+        });
+      }
+
       cssControls.width.addEventListener('input', function() {
         applyCssToSelectedElement('width', this.value);
       });
@@ -5065,6 +5266,49 @@ ${usageHint}`;
 
       cssControls.borderRadius.addEventListener('input', function() {
         applyCssToSelectedElement('borderRadius', this.value);
+      });
+    }
+
+    const jsClickSoundCtx =
+      "var a=window.__hsA||(window.__hsA=new(window.AudioContext||webkitAudioContext)());if(a.state==='suspended')a.resume();var t=a.currentTime";
+
+    const jsClickSoundPresets = [
+      {
+        id: 'beep',
+        labelEn: 'Beep',
+        labelAr: 'صفارة',
+        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.1);}catch(e){}"
+      },
+      {
+        id: 'tick',
+        labelEn: 'Tick',
+        labelAr: 'نقرة',
+        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=1600;g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.04);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.04);}catch(e){}"
+      },
+      {
+        id: 'pop',
+        labelEn: 'Pop',
+        labelAr: 'فرقعة',
+        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=320;g.gain.setValueAtTime(0.14,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.12);}catch(e){}"
+      },
+      {
+        id: 'success',
+        labelEn: 'Success',
+        labelAr: 'نجاح',
+        code: "try{" + jsClickSoundCtx + ";function p(f,d,ms){var o=a.createOscillator(),g=a.createGain();o.frequency.value=f;g.gain.setValueAtTime(0.1,t+d);g.gain.exponentialRampToValueAtTime(0.001,t+d+ms);o.connect(g);g.connect(a.destination);o.start(t+d);o.stop(t+d+ms);}p(523,0,0.09);p(659,0.11,0.12);}catch(e){}"
+      },
+      {
+        id: 'buzz',
+        labelEn: 'Buzz',
+        labelAr: 'طنين',
+        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sawtooth';o.frequency.value=140;g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.16);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.16);}catch(e){}"
+      }
+    ];
+
+    function refreshJsSoundButtonLabels() {
+      jsClickSoundPresets.forEach(function (preset) {
+        const btn = document.querySelector('.js-sound-btn[data-sound="' + preset.id + '"]');
+        if (btn) btn.textContent = isArabic ? preset.labelAr : preset.labelEn;
       });
     }
 
@@ -5142,6 +5386,19 @@ ${usageHint}`;
         });
       }
 
+      document.querySelectorAll('.js-sound-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (!selectedPreviewElement) {
+            alert(isArabic ? 'اختر عنصراً في المعاينة أولاً' : 'Select an element in the preview first');
+            return;
+          }
+          const id = btn.getAttribute('data-sound');
+          const preset = jsClickSoundPresets.find(function (p) { return p.id === id; });
+          if (!preset) return;
+          applyInlineAttrToSelection('onclick', preset.code, true);
+        });
+      });
+
       if (jsApplyHoverOutline) {
         jsApplyHoverOutline.addEventListener('click', function () {
           if (!selectedPreviewElement) return;
@@ -5212,6 +5469,37 @@ ${usageHint}`;
       }
     }
 
+    function refreshAboutModal() {
+      const ar = isArabic;
+      const aboutTitleEl = document.getElementById('aboutTitle');
+      const closeAboutBtnEl = document.getElementById('closeAboutBtn');
+      const aboutCreditEl = document.getElementById('aboutCredit');
+      const aboutSchoolEl = document.getElementById('aboutSchool');
+      const aboutLocationEl = document.getElementById('aboutLocation');
+      const aboutContactLabelEl = document.getElementById('aboutContactLabel');
+      if (!aboutTitleEl) return;
+      aboutTitleEl.textContent = ar ? 'حول' : 'About';
+      if (closeAboutBtnEl) closeAboutBtnEl.textContent = ar ? 'إغلاق' : 'Close';
+      if (aboutCreditEl) {
+        aboutCreditEl.textContent = ar
+          ? 'برمجة وتصميم: م. يعرب احمد وحشة'
+          : 'Programming and design: Eng. Yarub Ahmad Wahshah';
+      }
+      if (aboutSchoolEl) {
+        aboutSchoolEl.textContent = ar
+          ? 'مدرسة ابن تيمية الثانوية الشاملة للبنين'
+          : 'Ibn Taymiyyah Comprehensive Secondary School for Boys';
+      }
+      if (aboutLocationEl) {
+        aboutLocationEl.textContent = ar ? 'اربد - الأردن' : 'Irbid - Jordan';
+      }
+      if (aboutContactLabelEl) {
+        aboutContactLabelEl.textContent = ar
+          ? 'للتواصل وطلب الخصائص'
+          : 'For contact and feature requests';
+      }
+    }
+
     function applyLanguage() {
       document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
       document.documentElement.lang = isArabic ? 'ar' : 'en';
@@ -5262,10 +5550,13 @@ ${usageHint}`;
         ? 'git checkout — تبديل الفرع…'
         : 'git checkout — Switch branch…';
       document.getElementById('menuFileNew').textContent = isArabic ? 'ملف جديد' : 'New file';
+      document.getElementById('menuFileRename').textContent = isArabic ? 'إعادة تسمية الملف' : 'Rename file';
       document.getElementById('menuFileDelete').textContent = isArabic ? 'حذف الملف' : 'Delete file';
       document.getElementById('menuFileSaveJson').textContent = isArabic ? 'حفظ المشروع (JSON)' : 'Save project (JSON)';
       document.getElementById('menuFileExportAll').textContent = isArabic ? 'تصدير المشروع (ZIP)' : 'Export project (ZIP)';
       document.getElementById('menuFileLoad').textContent = isArabic ? 'تحميل مشروع (JSON أو ZIP)…' : 'Load project (JSON or ZIP)…';
+      document.getElementById('menuFileAbout').textContent = isArabic ? 'حول' : 'About';
+      refreshAboutModal();
       document.getElementById('menuHtmlTagsHint').textContent = isArabic
         ? 'اختر وسمًا لمعاينة الكود ثم أدرجه من النافذة.'
         : 'Pick a tag to preview the code, then insert from the dialog.';
@@ -5295,7 +5586,12 @@ ${usageHint}`;
       if (tabCss) tabCss.textContent = isArabic ? 'CSS' : 'CSS';
       if (tabJs) tabJs.textContent = isArabic ? 'JavaScript' : 'JavaScript';
       document.getElementById('groupTextTitle').textContent = isArabic ? 'النص' : 'Text';
+      const groupImgTitle = document.getElementById('groupImageAlignTitle');
+      if (groupImgTitle) groupImgTitle.textContent = isArabic ? 'موضع الصورة' : 'Image position';
+      const labelImgAlign = document.getElementById('labelImageAlign');
+      if (labelImgAlign) labelImgAlign.textContent = isArabic ? 'محاذاة الصورة' : 'Align image';
       document.getElementById('groupBoxTitle').textContent = isArabic ? 'الصندوق' : 'Box';
+      if (exportApkBtn) exportApkBtn.textContent = isArabic ? 'تصدير APK' : 'Export APK';
       document.getElementById('groupSpacingTitle').textContent = isArabic ? 'المسافات' : 'Spacing';
       document.getElementById('groupBorderTitle').textContent = isArabic ? 'الحدود' : 'Border';
 
@@ -5350,6 +5646,15 @@ ${usageHint}`;
           ? 'تطبيق عند النقر: تبديل إخفاء العنصر المستهدف'
           : 'Apply on click: toggle target hidden';
       }
+      const gSound = document.getElementById('groupJsSoundTitle');
+      if (gSound) gSound.textContent = isArabic ? 'صوت عند النقر' : 'Click sound';
+      const hintSound = document.getElementById('jsSoundHint');
+      if (hintSound) {
+        hintSound.textContent = isArabic
+          ? 'اختر صوتاً ليُضاف إلى معالج النقر للعنصر المحدد (بدون ملفات صوت).'
+          : 'Pick a sound to add to the selected element’s click handler (no audio files).';
+      }
+      refreshJsSoundButtonLabels();
       const gHov = document.getElementById('groupJsHoverTitle');
       if (gHov) gHov.textContent = isArabic ? 'عند التمرير' : 'Hover';
       const btnHov = document.getElementById('jsApplyHoverOutline');
@@ -5596,18 +5901,20 @@ ${usageHint}`;
       closeAllMenus();
       createNewFileFlow();
     });
+    document.getElementById('menuFileRename').addEventListener('click', function () {
+      closeAllMenus();
+      renameCurrentFileFlow();
+    });
     document.getElementById('menuFileDelete').addEventListener('click', function () {
       closeAllMenus();
-      const names = Object.keys(files);
-      if (names.length <= 1) {
-        alert(isArabic ? 'يجب أن يبقى ملف واحد على الأقل' : 'At least one file must remain');
-        return;
-      }
-      if (!confirm((isArabic ? 'حذف الملف: ' : 'Delete file: ') + currentFileName + '?')) return;
-      delete files[currentFileName];
-      const nextFile = Object.keys(files)[0];
-      loadFileIntoEditor(nextFile);
+      deleteCurrentFileFlow();
     });
+
+    if (exportApkBtn) {
+      exportApkBtn.addEventListener('click', function () {
+        alert('سيتم اتاحتها قريبا');
+      });
+    }
     document.getElementById('menuFileSaveJson').addEventListener('click', function () {
       closeAllMenus();
       saveProjectJson();
@@ -5620,6 +5927,20 @@ ${usageHint}`;
       closeAllMenus();
       document.getElementById('loadFile').click();
     });
+    const aboutModal = document.getElementById('aboutModal');
+    document.getElementById('menuFileAbout').addEventListener('click', function () {
+      closeAllMenus();
+      refreshAboutModal();
+      if (aboutModal) aboutModal.classList.add('show');
+    });
+    document.getElementById('closeAboutBtn').addEventListener('click', function () {
+      if (aboutModal) aboutModal.classList.remove('show');
+    });
+    if (aboutModal) {
+      aboutModal.addEventListener('click', function (e) {
+        if (e.target === aboutModal) aboutModal.classList.remove('show');
+      });
+    }
     document.getElementById('menuViewSideLayout').addEventListener('click', function () {
       closeAllMenus();
       menuPosition = (menuPosition === 'top') ? 'side' : 'top';
@@ -5649,6 +5970,7 @@ ${usageHint}`;
 
       const props = [
         'color', 'backgroundColor', 'fontSize', 'fontWeight', 'textAlign',
+        'float', 'marginLeft', 'marginRight',
         'width', 'height', 'display', 'margin', 'padding', 'border', 'borderRadius'
       ];
 
