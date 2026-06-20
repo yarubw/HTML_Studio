@@ -31,9 +31,34 @@ All methods accept an optional **params** object. Listed keys override the **def
 | Method | Purpose | Main params (defaults) |
 |--------|---------|-------------------------|
 | `start_camera` | Live video from camera | `videoId` [`cameraVideo`], `statusId` [`cameraStatus`], `key` [`camera`], `facingMode` [`environment`] |
+| `start_back_camera` | Back / rear camera | Same as `start_camera` with `facingMode: 'environment'` |
+| `start_front_camera` | Front / selfie camera | Same as `start_camera` with `facingMode: 'user'` |
+| `switch_camera` | Toggle front ↔ back | `videoId`, `statusId`, `key` |
+| `get_camera_facing` | Current facing mode | `key` [`camera`] → `'user'` or `'environment'` |
 | `stop_camera` | Stop tracks | `key` [`camera`], `statusId` [`cameraStatus`] |
-| `capture_image` | Frame from video → image | `videoId`, `canvasId` [`cameraCanvas`], `imageId` [`capturedImage`], `statusId`, `imageType` [`image/png`] |
-| `load_image_from_input` | File input → image | `inputId` [`cameraInput`], `imageId`, `statusId` |
+| `capture_image` | Frame from video → image | `videoId`, `canvasId` [`cameraCanvas`], `imageId` [`capturedImage`], `statusId`, `key`, `imageType` [`image/png`], `download` [`false`], `filename` |
+| `download_image` | Save image to file | `dataUrl`, or `imageId`, or `canvasId`, or `key` (last capture), `filename`, `statusId` |
+| `download_captured_image` | Save last capture for `key` | `key` [`camera`], `filename`, `statusId` |
+| `load_image_from_input` | File input → image | `inputId` [`cameraInput`], `imageId`, `statusId`, `key`, `download`, `filename` |
+
+**Android APK helpers** (only when running inside the exported WebView app):
+
+| Method | Purpose |
+|--------|---------|
+| `is_android_app()` | `true` in the exported APK shell |
+| `open_app_settings()` | Opens this app's page in Android Settings |
+| `request_android_permission(kind)` | Request `camera`, `microphone`, or `location` |
+| `has_android_permission(kind)` | Check if permission is granted (`true`/`false`, or `null` in browser) |
+| `show_permission_dialog(params)` | HTML dialog with **Open Settings** and **Try again** buttons |
+
+When camera/mic is denied, `start_camera` / `start_recording` show this dialog automatically (disable with `showDialog: false`).
+
+Example:
+
+```html
+<button onclick="MobileFeatures.show_permission_dialog({ kind: 'camera' })">Camera settings</button>
+<button onclick="MobileFeatures.open_app_settings()">Open app settings</button>
+```
 
 ### Microphone (recording)
 

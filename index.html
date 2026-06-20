@@ -2279,7 +2279,7 @@
                 </div>
                 <div class="css-group">
                   <div class="css-group-title" id="groupJsSoundTitle">Click sound</div>
-                  <p class="js-panel-hint" id="jsSoundHint">Pick a sound, then apply it to the selected element’s click handler (no audio files needed).</p>
+                  <p class="js-panel-hint" id="jsSoundHint">Pick a sound to play when the selected element is clicked (any element; no audio files needed).</p>
                   <div class="js-sound-grid" id="jsSoundGrid">
                     <button type="button" class="js-sound-btn" data-sound="beep">Beep</button>
                     <button type="button" class="js-sound-btn" data-sound="tick">Tick</button>
@@ -2381,6 +2381,37 @@
         <p id="aboutVerse" lang="ar" dir="rtl" class="about-verse">رب اغفر لي ولوالدي رب ارحمهما كما ربياني صغيرا</p>
         <p id="aboutContactLabel"></p>
         <p id="aboutEmail"><a href="mailto:yarubw@yahoo.com">yarubw@yahoo.com</a></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="apkExportModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="apkExportTitle">Export APK</span>
+        <button type="button" id="closeApkExportBtn">Close</button>
+      </div>
+      <div class="modal-body">
+        <p id="apkExportIntro" style="margin:0 0 12px;color:#374151;font-size:13px;">
+          Enter the app name, choose an icon, then build your project into an installable APK — entirely in your browser (no server).
+        </p>
+        <div class="github-row" style="margin-bottom:12px;">
+          <label for="apkAppNameInput" id="apkAppNameLabel">App name</label>
+          <input id="apkAppNameInput" type="text" maxlength="15" placeholder="My Student App" autocomplete="off">
+        </div>
+        <div class="github-row" style="margin-bottom:12px;">
+          <label for="apkAppIconInput" id="apkAppIconLabel">App icon</label>
+          <input id="apkAppIconInput" type="file" accept="image/png,image/jpeg,image/webp">
+          <span id="apkAppIconHint" style="display:block;font-size:12px;color:#6b7280;margin-top:6px;">
+            Square image recommended (PNG, 512×512).
+          </span>
+          <img id="apkIconPreview" alt="" width="72" height="72" style="display:none;margin-top:10px;object-fit:cover;border-radius:14px;border:1px solid #e5e7eb;background:#f3f4f6;">
+        </div>
+        <p id="apkExportStatus" style="margin:0;color:#374151;font-size:14px;min-height:1.4em;"></p>
+        <a id="apkDownloadLink" href="#" download style="display:none;margin-top:12px;font-weight:600;color:#2563eb;">Download APK</a>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="apkExportStartBtn" style="background:#7c3aed;color:#fff;">Build APK</button>
       </div>
     </div>
   </div>
@@ -2991,9 +3022,12 @@
   <video id="cameraVideo" autoplay playsinline style="width: 100%; border-radius: 8px; background: #000;"></video>
 
   <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-    <button id="startCameraBtn">Start Camera</button>
+    <button id="startCameraBtn">Back Camera</button>
+    <button id="frontCameraBtn">Front Camera</button>
+    <button id="switchCameraBtn">Switch Camera</button>
     <button id="stopCameraBtn">Stop Camera</button>
     <button id="captureBtn">Capture Image</button>
+    <button id="downloadBtn">Download Image</button>
   </div>
 
   <p style="margin: 10px 0 6px;"><b>Captured Output:</b></p>
@@ -3011,6 +3045,8 @@
 <script>
   const cameraFeature = {
     stream: null,
+    facingMode: 'environment',
+    lastCapture: '',
     videoEl: document.getElementById('cameraVideo'),
     canvasEl: document.getElementById('captureCanvas'),
     imageEl: document.getElementById('capturedImage'),
@@ -3029,21 +3065,48 @@
     return 'Camera API is not supported in this browser. Use fallback input below.';
   }
 
-  async function startCamera(options = { facingMode: 'environment' }) {
+  async function startCamera(options = {}) {
+    const facingMode = options.facingMode || cameraFeature.facingMode || 'environment';
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setCameraMessage(getCameraSupportMessage() + ' Opening fallback camera/file picker...');
       if (cameraFeature.fallbackInputEl) cameraFeature.fallbackInputEl.click();
       return null;
     }
+    if (cameraFeature.stream) {
+      cameraFeature.stream.getTracks().forEach(track => track.stop());
+      cameraFeature.stream = null;
+      cameraFeature.videoEl.srcObject = null;
+    }
     try {
-      cameraFeature.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: options.facingMode || 'environment' }, audio: false });
+      cameraFeature.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facingMode } }, audio: false });
+      cameraFeature.facingMode = facingMode;
       cameraFeature.videoEl.srcObject = cameraFeature.stream;
-      setCameraMessage('Camera started.');
+      const label = facingMode === 'user' ? 'Front camera started.' : 'Back camera started.';
+      setCameraMessage(label);
       return cameraFeature.stream;
     } catch (err) {
       setCameraMessage('Could not start camera: ' + err.message);
       return null;
     }
+  }
+
+  function switchCamera() {
+    const next = cameraFeature.facingMode === 'user' ? 'environment' : 'user';
+    return startCamera({ facingMode: next });
+  }
+
+  function downloadCapturedImage() {
+    const dataUrl = cameraFeature.lastCapture || cameraFeature.imageEl.src;
+    if (!dataUrl || dataUrl === window.location.href) {
+      setCameraMessage('Capture an image first.');
+      return;
+    }
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = 'photo-' + stamp + '.png';
+    link.click();
+    setCameraMessage('Download started: ' + link.download);
   }
 
   function stopCamera() {
@@ -3069,6 +3132,7 @@
     ctx.drawImage(cameraFeature.videoEl, 0, 0, cameraFeature.canvasEl.width, cameraFeature.canvasEl.height);
     const dataUrl = cameraFeature.canvasEl.toDataURL(imageType);
     cameraFeature.imageEl.src = dataUrl;
+    cameraFeature.lastCapture = dataUrl;
     setCameraMessage('Image captured from video stream.');
     return dataUrl;
   }
@@ -3078,14 +3142,18 @@
     const reader = new FileReader();
     reader.onload = () => {
       cameraFeature.imageEl.src = reader.result;
+      cameraFeature.lastCapture = reader.result;
       setCameraMessage('Image loaded from fallback input.');
     };
     reader.readAsDataURL(file);
   }
 
   document.getElementById('startCameraBtn').addEventListener('click', () => startCamera({ facingMode: 'environment' }));
+  document.getElementById('frontCameraBtn').addEventListener('click', () => startCamera({ facingMode: 'user' }));
+  document.getElementById('switchCameraBtn').addEventListener('click', switchCamera);
   document.getElementById('stopCameraBtn').addEventListener('click', stopCamera);
   document.getElementById('captureBtn').addEventListener('click', () => captureImage('image/png'));
+  document.getElementById('downloadBtn').addEventListener('click', downloadCapturedImage);
   document.getElementById('cameraFallbackInput').addEventListener('change', (event) => loadFallbackImage(event.target.files[0]));
 <\/script>`
           }
@@ -3729,22 +3797,19 @@ self.addEventListener('fetch', (event) => {
           },
           {
             id: 'apk-export',
-            titleEn: 'Export APK (Coming Soon)',
-            titleAr: 'تصدير APK (قريباً)',
-            descEn: 'Frontend-only builder: APK packaging/export needs server-side build/packaging.',
-            descAr: 'المحرر يعمل فقط من الواجهة: تصدير APK يحتاج بناء/تجهيز على السيرفر.',
-            code: `<!-- APK Export (Coming Soon) -->
+            titleEn: 'Export APK (browser build)',
+            titleAr: 'تصدير APK (بناء في المتصفح)',
+            descEn: 'Use the top bar Export APK button — packaging and signing run locally in the browser.',
+            descAr: 'استخدم زر تصدير APK في الشريط العلوي — التجهيز والتوقيع يتم محلياً في المتصفح.',
+            code: `<!-- APK Export -->
 <section style="font-family: Arial, sans-serif; max-width: 620px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: #f9fafb;">
-  <h2>APK Export</h2>
+  <h2>Export APK</h2>
   <p>
-    This website is <b>frontend-only</b> for now.
-    Exporting a real <b>.apk</b> requires server-side packaging (for example Cordova/Capacitor/Gradle).
+    Click <b>Export APK</b> in the editor toolbar. Your HTML/CSS/JS project is wrapped in a WebView shell
+    and signed <b>entirely in the browser</b> — no server required.
   </p>
-  <button onclick="alert('APK export is not available in this frontend-only version. It will be implemented when server packaging/export is required.')">
-    Export APK
-  </button>
-  <p style="margin-top: 10px;">
-    Note: iOS export would be similar, but <b>server support</b> is required first.
+  <p style="margin-top: 10px; font-size: 13px; color: #6b7280;">
+    Install the downloaded debug APK on Android (allow unknown apps). App name on the home screen is limited to 15 characters.
   </p>
 </section>`
           }
@@ -3801,8 +3866,11 @@ self.addEventListener('fetch', (event) => {
 
 <!-- Other simple methods -->
 <!-- Camera -->
-<!-- <button onclick="MobileFeatures.start_camera({ videoId:'cameraVideo', statusId:'cameraStatus', key:'cam1' })">Start Camera</button> -->
-<!-- <button onclick="MobileFeatures.capture_image({ videoId:'cameraVideo', canvasId:'cameraCanvas', imageId:'capturedImage', statusId:'cameraStatus' })">Capture</button> -->
+<!-- <button onclick="MobileFeatures.start_back_camera({ videoId:'cameraVideo', statusId:'cameraStatus', key:'cam1' })">Back Camera</button> -->
+<!-- <button onclick="MobileFeatures.start_front_camera({ videoId:'cameraVideo', statusId:'cameraStatus', key:'cam1' })">Front Camera</button> -->
+<!-- <button onclick="MobileFeatures.switch_camera({ videoId:'cameraVideo', statusId:'cameraStatus', key:'cam1' })">Switch Camera</button> -->
+<!-- <button onclick="MobileFeatures.capture_image({ videoId:'cameraVideo', canvasId:'cameraCanvas', imageId:'capturedImage', statusId:'cameraStatus', key:'cam1' })">Capture</button> -->
+<!-- <button onclick="MobileFeatures.download_captured_image({ key:'cam1', statusId:'cameraStatus' })">Download Image</button> -->
 <!-- <button onclick="MobileFeatures.stop_camera({ key:'cam1', statusId:'cameraStatus' })">Stop</button> -->
 <!-- GPS -->
 <!-- <button onclick="MobileFeatures.get_location({ outputId:'gpsOutput' })">Get Location</button> -->`
@@ -3818,10 +3886,13 @@ self.addEventListener('fetch', (event) => {
 <img id="capturedImage" style="max-width:320px;display:block;margin-top:8px;">
 <input id="cameraInput" type="file" accept="image/*" capture="environment">
 <p id="cameraStatus">Ready</p>
-<button onclick="MobileFeatures.start_camera({ videoId:'cameraVideo', statusId:'cameraStatus', key:'cam1' })">Start Camera</button>
-<button onclick="MobileFeatures.capture_image({ videoId:'cameraVideo', canvasId:'cameraCanvas', imageId:'capturedImage', statusId:'cameraStatus' })">Capture</button>
+<button onclick="MobileFeatures.start_back_camera({ videoId:'cameraVideo', statusId:'cameraStatus', key:'cam1' })">Back Camera</button>
+<button onclick="MobileFeatures.start_front_camera({ videoId:'cameraVideo', statusId:'cameraStatus', key:'cam1' })">Front Camera</button>
+<button onclick="MobileFeatures.switch_camera({ videoId:'cameraVideo', statusId:'cameraStatus', key:'cam1' })">Switch Camera</button>
+<button onclick="MobileFeatures.capture_image({ videoId:'cameraVideo', canvasId:'cameraCanvas', imageId:'capturedImage', statusId:'cameraStatus', key:'cam1' })">Capture</button>
+<button onclick="MobileFeatures.download_captured_image({ key:'cam1', statusId:'cameraStatus' })">Download Image</button>
 <button onclick="MobileFeatures.stop_camera({ key:'cam1', statusId:'cameraStatus' })">Stop</button>
-<button onclick="MobileFeatures.load_image_from_input({ inputId:'cameraInput', imageId:'capturedImage', statusId:'cameraStatus' })">Load Fallback Image</button>
+<button onclick="MobileFeatures.load_image_from_input({ inputId:'cameraInput', imageId:'capturedImage', statusId:'cameraStatus', key:'cam1' })">Load Fallback Image</button>
 <script src="mobile-features-lib.js"><\/script>`,
       'mic-recorder': `<!-- Microphone (library mode) -->
 <p id="micStatus">Ready</p>
@@ -3935,14 +4006,10 @@ self.addEventListener('fetch', (event) => {
 <button onclick="MobileFeatures.register_service_worker('./service-worker.js').then(ok => document.getElementById('swStatus').textContent = ok ? 'Registered' : 'Failed')">Register Service Worker</button>
 <script src="mobile-features-lib.js"><\/script>`
       ,
-      'apk-export': `<!-- APK Export (Coming Soon) -->
+      'apk-export': `<!-- APK Export -->
 <section style="font-family: Arial, sans-serif; max-width: 620px; margin: 20px auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: #f9fafb;">
-  <h2>APK Export</h2>
-  <p>
-    This builder is <b>frontend-only</b> for now.
-    Exporting a real <b>.apk</b> needs <b>server-side</b> packaging/build.
-  </p>
-  <button onclick="alert('APK export is not available in this frontend-only version. It will be implemented when server packaging/export is required.')">Export APK</button>
+  <h2>Export APK</h2>
+  <p>Use the toolbar <b>Export APK</b> button. The APK is packaged and signed locally in your browser.</p>
 </section>`
     };
 
@@ -4164,6 +4231,8 @@ self.addEventListener('fetch', (event) => {
           const v = sourceEl.getAttribute(a);
           if (v) lines.push(a + ': ' + v);
         });
+        const soundId = sourceEl.getAttribute('data-hs-click-sound');
+        if (soundId) lines.push('data-hs-click-sound: ' + soundId);
       }
       if (!lines.length) {
         generatedJsBox.textContent = isArabic
@@ -4481,6 +4550,181 @@ self.addEventListener('fetch', (event) => {
       }
     }
 
+    /** Client-side APK builder (no server). */
+    const APK_ZIP_EXT = /\.(html|css|js|json|txt|png|jpe?g|gif|svg|webp|ico|mp3|wav|mp4)$/i;
+    let apkBuilderLoadPromise = null;
+
+    function ensureApkClientBuilderLoaded() {
+      if (typeof YarubApkClient !== 'undefined') return Promise.resolve();
+      if (apkBuilderLoadPromise) return apkBuilderLoadPromise;
+      apkBuilderLoadPromise = new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'vendor/apk-client-builder.js';
+        s.async = true;
+        s.onload = function () {
+          if (typeof YarubApkClient !== 'undefined') resolve();
+          else reject(new Error('APK builder script did not initialize'));
+        };
+        s.onerror = function () { reject(new Error('APK builder script failed to load')); };
+        document.head.appendChild(s);
+      });
+      return apkBuilderLoadPromise;
+    }
+
+    const apkExportModal = document.getElementById('apkExportModal');
+    const apkAppNameInput = document.getElementById('apkAppNameInput');
+    const apkAppIconInput = document.getElementById('apkAppIconInput');
+    const apkIconPreview = document.getElementById('apkIconPreview');
+    const apkExportStatus = document.getElementById('apkExportStatus');
+    const apkDownloadLink = document.getElementById('apkDownloadLink');
+    const apkExportStartBtn = document.getElementById('apkExportStartBtn');
+    let apkIconPreviewUrl = null;
+
+    function setApkExportStatus(text) {
+      if (apkExportStatus) apkExportStatus.textContent = text || '';
+    }
+
+    function resetApkExportModal() {
+      setApkExportStatus('');
+      if (apkDownloadLink) {
+        apkDownloadLink.style.display = 'none';
+        apkDownloadLink.removeAttribute('href');
+      }
+      if (apkExportStartBtn) apkExportStartBtn.disabled = false;
+      if (apkIconPreviewUrl) {
+        URL.revokeObjectURL(apkIconPreviewUrl);
+        apkIconPreviewUrl = null;
+      }
+      if (apkAppIconInput) apkAppIconInput.value = '';
+      if (apkIconPreview) {
+        apkIconPreview.style.display = 'none';
+        apkIconPreview.removeAttribute('src');
+      }
+    }
+
+    function updateApkIconPreview(file) {
+      if (apkIconPreviewUrl) {
+        URL.revokeObjectURL(apkIconPreviewUrl);
+        apkIconPreviewUrl = null;
+      }
+      if (!file || !apkIconPreview) {
+        if (apkIconPreview) {
+          apkIconPreview.style.display = 'none';
+          apkIconPreview.removeAttribute('src');
+        }
+        return;
+      }
+      apkIconPreviewUrl = URL.createObjectURL(file);
+      apkIconPreview.src = apkIconPreviewUrl;
+      apkIconPreview.style.display = 'block';
+    }
+
+    function openApkExportModal() {
+      resetApkExportModal();
+      if (apkAppNameInput && !apkAppNameInput.value.trim()) {
+        apkAppNameInput.value = isArabic ? 'تطبيقي' : 'My App';
+      }
+      if (apkExportModal) apkExportModal.classList.add('show');
+    }
+
+    async function collectApkProjectFiles() {
+      prepareProjectSaveState();
+      const projectFiles = [];
+      let hasRootIndex = false;
+
+      for (const [name, content] of Object.entries(files)) {
+        if (typeof content !== 'string') continue;
+        const base = name.split('/').pop() || name;
+        const lower = base.toLowerCase();
+        if (lower === 'project.json' || lower === 'project-manifest.json') continue;
+        if (!APK_ZIP_EXT.test(base)) continue;
+
+        if (isMediaFile(name) && content.startsWith('data:')) {
+          const res = await fetch(content);
+          projectFiles.push({ path: name, data: await res.arrayBuffer() });
+        } else {
+          projectFiles.push({ path: name, data: content });
+        }
+        if (name.toLowerCase() === 'index.html') hasRootIndex = true;
+      }
+
+      if (!hasRootIndex) {
+        const primary = getPrimaryHtmlFile();
+        if (!primary || !primary.toLowerCase().endsWith('.html')) {
+          throw new Error(isArabic
+            ? 'المشروع يحتاج ملف index.html في الجذر'
+            : 'Project needs index.html at the root');
+        }
+        projectFiles.push({ path: 'index.html', data: files[primary] || '' });
+      }
+
+      return projectFiles;
+    }
+
+    async function buildApkProjectZipBlob() {
+      await ensureJSZipLoaded();
+      const zip = new JSZip();
+      const projectFiles = await collectApkProjectFiles();
+      for (const entry of projectFiles) {
+        zip.file(entry.path, entry.data);
+      }
+      return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    }
+
+    async function submitApkExport() {
+      const appName = apkAppNameInput ? apkAppNameInput.value.trim() : '';
+      if (!appName) {
+        alert(isArabic ? 'يرجى إدخال اسم التطبيق' : 'Please enter an app name');
+        return;
+      }
+      if (appName.length > 15) {
+        alert(isArabic ? 'اسم التطبيق يجب ألا يتجاوز 15 حرفاً' : 'App name must be 15 characters or fewer');
+        return;
+      }
+
+      const iconFile = apkAppIconInput && apkAppIconInput.files && apkAppIconInput.files[0];
+      if (!iconFile) {
+        alert(isArabic ? 'يرجى اختيار أيقونة التطبيق' : 'Please choose an app icon');
+        return;
+      }
+      if (!/^image\/(png|jpeg|webp)$/i.test(iconFile.type)) {
+        alert(isArabic ? 'الأيقونة يجب أن تكون PNG أو JPEG أو WebP' : 'Icon must be PNG, JPEG, or WebP');
+        return;
+      }
+      if (iconFile.size > 2 * 1024 * 1024) {
+        alert(isArabic ? 'حجم الأيقونة أكبر من 2 ميجابايت' : 'Icon is larger than 2MB');
+        return;
+      }
+
+      if (apkExportStartBtn) apkExportStartBtn.disabled = true;
+      if (apkDownloadLink) apkDownloadLink.style.display = 'none';
+      setApkExportStatus(isArabic ? 'جاري تجهيز المشروع…' : 'Preparing project…');
+
+      try {
+        await ensureJSZipLoaded();
+        await ensureApkClientBuilderLoaded();
+        const projectFiles = await collectApkProjectFiles();
+        const apkBlob = await YarubApkClient.buildClientApk({
+          appName: appName,
+          iconFile: iconFile,
+          projectFiles: projectFiles,
+          onStatus: setApkExportStatus
+        });
+        const safeName = (appName || 'app').replace(/[^\w.-]+/g, '_') + '.apk';
+        const url = URL.createObjectURL(apkBlob);
+        if (apkDownloadLink) {
+          apkDownloadLink.href = url;
+          apkDownloadLink.download = safeName;
+          apkDownloadLink.style.display = 'inline-block';
+        }
+        setApkExportStatus(isArabic ? 'اكتمل البناء! اضغط تحميل APK.' : 'Build complete! Click Download APK.');
+        if (apkExportStartBtn) apkExportStartBtn.disabled = false;
+      } catch (err) {
+        if (apkExportStartBtn) apkExportStartBtn.disabled = false;
+        setApkExportStatus((isArabic ? 'خطأ: ' : 'Error: ') + (err.message || String(err)));
+      }
+    }
+
     function clearSelectedOutline() {
       if (selectedPreviewElement) {
         selectedPreviewElement.style.outline = selectedPrevOutline;
@@ -4683,6 +4927,93 @@ self.addEventListener('fetch', (event) => {
       return htmlFile || currentFileName;
     }
 
+    const jsClickSoundCtx =
+      "var a=window.__hsA||(window.__hsA=new(window.AudioContext||webkitAudioContext)());if(a.state==='suspended')a.resume();var t=a.currentTime";
+
+    const jsClickSoundPresets = [
+      {
+        id: 'beep',
+        labelEn: 'Beep',
+        labelAr: 'صفارة',
+        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.1);}catch(e){}"
+      },
+      {
+        id: 'tick',
+        labelEn: 'Tick',
+        labelAr: 'نقرة',
+        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=1600;g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.04);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.04);}catch(e){}"
+      },
+      {
+        id: 'pop',
+        labelEn: 'Pop',
+        labelAr: 'فرقعة',
+        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=320;g.gain.setValueAtTime(0.14,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.12);}catch(e){}"
+      },
+      {
+        id: 'success',
+        labelEn: 'Success',
+        labelAr: 'نجاح',
+        code: "try{" + jsClickSoundCtx + ";function p(f,d,ms){var o=a.createOscillator(),g=a.createGain();o.frequency.value=f;g.gain.setValueAtTime(0.1,t+d);g.gain.exponentialRampToValueAtTime(0.001,t+d+ms);o.connect(g);g.connect(a.destination);o.start(t+d);o.stop(t+d+ms);}p(523,0,0.09);p(659,0.11,0.12);}catch(e){}"
+      },
+      {
+        id: 'buzz',
+        labelEn: 'Buzz',
+        labelAr: 'طنين',
+        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sawtooth';o.frequency.value=140;g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.16);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.16);}catch(e){}"
+      }
+    ];
+
+    function buildClickSoundBootstrapScript() {
+      const presetFns = jsClickSoundPresets.map(function (p) {
+        return JSON.stringify(p.id) + ':function(){' + p.code + '}';
+      }).join(',');
+      return '(function(){if(window.__hsClickSoundReady)return;window.__hsClickSoundReady=1;var P={' + presetFns + '};function play(id){if(P[id])try{P[id]()}catch(e){}}document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("[data-hs-click-sound]");if(el)play(el.getAttribute("data-hs-click-sound"));},true);})();';
+    }
+
+    function ensureClickSoundBootstrapInDoc(doc) {
+      if (!doc || doc.getElementById('__hsClickSoundBootstrap')) return;
+      const script = doc.createElement('script');
+      script.id = '__hsClickSoundBootstrap';
+      script.textContent = buildClickSoundBootstrapScript();
+      if (doc.body) doc.body.appendChild(script);
+      else if (doc.head) doc.head.appendChild(script);
+      else doc.documentElement.appendChild(script);
+    }
+
+    function removeClickSoundBootstrapIfUnused(doc) {
+      if (!doc || doc.querySelector('[data-hs-click-sound]')) return;
+      const script = doc.getElementById('__hsClickSoundBootstrap');
+      if (script) script.remove();
+    }
+
+    function applyClickSoundToSelection(presetId) {
+      if (!selectedPreviewElement || !presetId) return;
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(editor.value, 'text/html');
+      const sourceEl = doc.querySelector('[data-editor-selected="1"]');
+      if (!sourceEl) return;
+
+      sourceEl.setAttribute('data-hs-click-sound', presetId);
+      ensureClickSoundBootstrapInDoc(doc);
+
+      editor.value = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+      lastSavedValue = editor.value;
+      syncHighlight();
+      updateCursorStatus();
+
+      try {
+        const markedPreviewEl = previewFrameRef.contentDocument.querySelector('[data-editor-selected="1"]');
+        if (markedPreviewEl) {
+          markedPreviewEl.setAttribute('data-hs-click-sound', presetId);
+        }
+        ensureClickSoundBootstrapInDoc(previewFrameRef.contentDocument);
+      } catch (_) {}
+
+      highlightSelectedElement(selectedPreviewElement);
+      updateGeneratedCssBox();
+      updateGeneratedJsBox();
+    }
+
     function buildPreviewHtml(entryFile) {
       let html = files[entryFile] || '';
       html = html.replace(/<link([^>]*?)href=["']([^"']+)["']([^>]*)>/gi, (full, before, href, after) => {
@@ -4739,7 +5070,8 @@ self.addEventListener('fetch', (event) => {
 
       const navBridge = `<script>(function(){function openExt(u){try{var w=window.open(u,'_blank','noopener,noreferrer');if(!w&&window.parent&&window.parent!==window){window.parent.open(u,'_blank','noopener,noreferrer')}}catch(e){try{if(window.parent&&window.parent!==window){window.parent.open(u,'_blank','noopener,noreferrer')}}catch(_){}}}function goFile(f){try{parent.postMessage({__htmlStudioNavigate:true,file:String(f)},'*')}catch(e){}}window.__htmlStudioOpenExternal=openExt;window.__htmlStudioGoToPage=goFile})()<\/script>`;
 
-      const previewBridges = consoleBridge + navBridge;
+      const clickSoundBridge = '<script id="__hsClickSoundBootstrap">' + buildClickSoundBootstrapScript() + '<\/script>';
+      const previewBridges = consoleBridge + navBridge + clickSoundBridge;
 
       if (/<head[^>]*>/i.test(html)) {
         html = html.replace(/<head([^>]*)>/i, '<head$1>' + previewBridges);
@@ -5269,42 +5601,6 @@ ${usageHint}`;
       });
     }
 
-    const jsClickSoundCtx =
-      "var a=window.__hsA||(window.__hsA=new(window.AudioContext||webkitAudioContext)());if(a.state==='suspended')a.resume();var t=a.currentTime";
-
-    const jsClickSoundPresets = [
-      {
-        id: 'beep',
-        labelEn: 'Beep',
-        labelAr: 'صفارة',
-        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.1);}catch(e){}"
-      },
-      {
-        id: 'tick',
-        labelEn: 'Tick',
-        labelAr: 'نقرة',
-        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=1600;g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.04);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.04);}catch(e){}"
-      },
-      {
-        id: 'pop',
-        labelEn: 'Pop',
-        labelAr: 'فرقعة',
-        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=320;g.gain.setValueAtTime(0.14,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.12);}catch(e){}"
-      },
-      {
-        id: 'success',
-        labelEn: 'Success',
-        labelAr: 'نجاح',
-        code: "try{" + jsClickSoundCtx + ";function p(f,d,ms){var o=a.createOscillator(),g=a.createGain();o.frequency.value=f;g.gain.setValueAtTime(0.1,t+d);g.gain.exponentialRampToValueAtTime(0.001,t+d+ms);o.connect(g);g.connect(a.destination);o.start(t+d);o.stop(t+d+ms);}p(523,0,0.09);p(659,0.11,0.12);}catch(e){}"
-      },
-      {
-        id: 'buzz',
-        labelEn: 'Buzz',
-        labelAr: 'طنين',
-        code: "try{" + jsClickSoundCtx + ";var o=a.createOscillator(),g=a.createGain();o.type='sawtooth';o.frequency.value=140;g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.16);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+0.16);}catch(e){}"
-      }
-    ];
-
     function refreshJsSoundButtonLabels() {
       jsClickSoundPresets.forEach(function (preset) {
         const btn = document.querySelector('.js-sound-btn[data-sound="' + preset.id + '"]');
@@ -5395,7 +5691,7 @@ ${usageHint}`;
           const id = btn.getAttribute('data-sound');
           const preset = jsClickSoundPresets.find(function (p) { return p.id === id; });
           if (!preset) return;
-          applyInlineAttrToSelection('onclick', preset.code, true);
+          applyClickSoundToSelection(preset.id);
         });
       });
 
@@ -5436,6 +5732,8 @@ ${usageHint}`;
           const sourceEl = doc.querySelector('[data-editor-selected="1"]');
           if (!sourceEl) return;
           attrs.forEach(function (a) { sourceEl.removeAttribute(a); });
+          sourceEl.removeAttribute('data-hs-click-sound');
+          removeClickSoundBootstrapIfUnused(doc);
 
           editor.value = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
           lastSavedValue = editor.value;
@@ -5446,6 +5744,7 @@ ${usageHint}`;
             const markedPreviewEl = previewFrameRef.contentDocument.querySelector('[data-editor-selected="1"]');
             if (markedPreviewEl) {
               attrs.forEach(function (a) { markedPreviewEl.removeAttribute(a); });
+              markedPreviewEl.removeAttribute('data-hs-click-sound');
             }
           } catch (_) {}
 
@@ -5592,6 +5891,28 @@ ${usageHint}`;
       if (labelImgAlign) labelImgAlign.textContent = isArabic ? 'محاذاة الصورة' : 'Align image';
       document.getElementById('groupBoxTitle').textContent = isArabic ? 'الصندوق' : 'Box';
       if (exportApkBtn) exportApkBtn.textContent = isArabic ? 'تصدير APK' : 'Export APK';
+      const apkExportTitle = document.getElementById('apkExportTitle');
+      if (apkExportTitle) apkExportTitle.textContent = isArabic ? 'تصدير APK' : 'Export APK';
+      const apkExportIntro = document.getElementById('apkExportIntro');
+      if (apkExportIntro) {
+        apkExportIntro.textContent = isArabic
+          ? 'أدخل اسم التطبيق واختر أيقونة، ثم يُبنى ملف APK بالكامل في المتصفح دون خادم.'
+          : 'Enter the app name, choose an icon, then build your project into an installable APK — entirely in your browser (no server).';
+      }
+      const apkAppNameLabel = document.getElementById('apkAppNameLabel');
+      if (apkAppNameLabel) apkAppNameLabel.textContent = isArabic ? 'اسم التطبيق' : 'App name';
+      const apkAppIconLabel = document.getElementById('apkAppIconLabel');
+      if (apkAppIconLabel) apkAppIconLabel.textContent = isArabic ? 'أيقونة التطبيق' : 'App icon';
+      const apkAppIconHint = document.getElementById('apkAppIconHint');
+      if (apkAppIconHint) {
+        apkAppIconHint.textContent = isArabic
+          ? 'يُفضّل صورة مربعة (PNG، 512×512).'
+          : 'Square image recommended (PNG, 512×512).';
+      }
+      const closeApkExportBtn = document.getElementById('closeApkExportBtn');
+      if (closeApkExportBtn) closeApkExportBtn.textContent = isArabic ? 'إغلاق' : 'Close';
+      if (apkExportStartBtn) apkExportStartBtn.textContent = isArabic ? 'بناء APK' : 'Build APK';
+      if (apkDownloadLink) apkDownloadLink.textContent = isArabic ? 'تحميل APK' : 'Download APK';
       document.getElementById('groupSpacingTitle').textContent = isArabic ? 'المسافات' : 'Spacing';
       document.getElementById('groupBorderTitle').textContent = isArabic ? 'الحدود' : 'Border';
 
@@ -5651,8 +5972,8 @@ ${usageHint}`;
       const hintSound = document.getElementById('jsSoundHint');
       if (hintSound) {
         hintSound.textContent = isArabic
-          ? 'اختر صوتاً ليُضاف إلى معالج النقر للعنصر المحدد (بدون ملفات صوت).'
-          : 'Pick a sound to add to the selected element’s click handler (no audio files).';
+          ? 'اختر صوتاً ليُشغَّل عند النقر على العنصر المحدد (أي عنصر — زر، صورة، فقرة، إلخ) بدون ملفات صوت.'
+          : 'Pick a sound to play when the selected element is clicked (any element — button, image, paragraph, etc.; no audio files).';
       }
       refreshJsSoundButtonLabels();
       const gHov = document.getElementById('groupJsHoverTitle');
@@ -5912,7 +6233,31 @@ ${usageHint}`;
 
     if (exportApkBtn) {
       exportApkBtn.addEventListener('click', function () {
-        alert('سيتم اتاحتها قريبا');
+        openApkExportModal();
+      });
+    }
+    if (document.getElementById('closeApkExportBtn')) {
+      document.getElementById('closeApkExportBtn').addEventListener('click', function () {
+        if (apkExportModal) apkExportModal.classList.remove('show');
+        resetApkExportModal();
+      });
+    }
+    if (apkExportModal) {
+      apkExportModal.addEventListener('click', function (e) {
+        if (e.target === apkExportModal) {
+          apkExportModal.classList.remove('show');
+          resetApkExportModal();
+        }
+      });
+    }
+    if (apkExportStartBtn) {
+      apkExportStartBtn.addEventListener('click', function () {
+        submitApkExport();
+      });
+    }
+    if (apkAppIconInput) {
+      apkAppIconInput.addEventListener('change', function () {
+        updateApkIconPreview(apkAppIconInput.files && apkAppIconInput.files[0]);
       });
     }
     document.getElementById('menuFileSaveJson').addEventListener('click', function () {

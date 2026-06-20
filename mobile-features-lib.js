@@ -6,7 +6,9 @@
     streams: {},
     recorders: {},
     chunks: {},
-    watchIds: {}
+    watchIds: {},
+    cameraFacing: {},
+    captures: {}
   };
 
   function byId(id) {
@@ -18,11 +20,192 @@
     if (el) el.textContent = text;
   }
 
+  function isAndroidApp() {
+    return typeof global.HtmlStudioAndroid !== "undefined"
+      && typeof global.HtmlStudioAndroid.isAndroidApp === "function"
+      && global.HtmlStudioAndroid.isAndroidApp();
+  }
+
+  function open_app_settings() {
+    if (isAndroidApp() && typeof global.HtmlStudioAndroid.openAppSettings === "function") {
+      global.HtmlStudioAndroid.openAppSettings();
+      return true;
+    }
+    return false;
+  }
+
+  function request_android_permission(kind) {
+    if (!isAndroidApp()) return false;
+    const bridge = global.HtmlStudioAndroid;
+    if (kind === "camera" && typeof bridge.requestCameraPermission === "function") {
+      bridge.requestCameraPermission();
+      return true;
+    }
+    if (kind === "microphone" && typeof bridge.requestMicrophonePermission === "function") {
+      bridge.requestMicrophonePermission();
+      return true;
+    }
+    if (kind === "location" && typeof bridge.requestLocationPermission === "function") {
+      bridge.requestLocationPermission();
+      return true;
+    }
+    return false;
+  }
+
+  function has_android_permission(kind) {
+    if (!isAndroidApp()) return null;
+    const bridge = global.HtmlStudioAndroid;
+    if (kind === "camera" && typeof bridge.hasCameraPermission === "function") {
+      return bridge.hasCameraPermission();
+    }
+    if (kind === "microphone" && typeof bridge.hasMicrophonePermission === "function") {
+      return bridge.hasMicrophonePermission();
+    }
+    if (kind === "location" && typeof bridge.hasLocationPermission === "function") {
+      return bridge.hasLocationPermission();
+    }
+    return null;
+  }
+
+  function show_permission_dialog(params = {}) {
+    const kind = params.kind || "camera";
+    const overlayId = params.overlayId || "mf-permission-dialog";
+    const title = params.title || (kind.charAt(0).toUpperCase() + kind.slice(1) + " permission needed");
+    const message = params.message
+      || ("Allow " + kind + " access for this app. Open Android Settings to enable the permission.");
+    const existing = byId(overlayId);
+    if (existing) existing.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = overlayId;
+    overlay.setAttribute("role", "dialog");
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;";
+    overlay.innerHTML =
+      '<div style="background:#fff;border-radius:12px;max-width:360px;width:100%;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.2);font-family:Segoe UI,Arial,sans-serif;">' +
+      '<h3 style="margin:0 0 10px;font-size:18px;">' + title + '</h3>' +
+      '<p style="margin:0 0 16px;color:#374151;line-height:1.5;font-size:14px;">' + message + '</p>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;">' +
+      '<button type="button" data-mf-action="cancel" style="padding:8px 12px;border:1px solid #d1d5db;background:#fff;border-radius:8px;">Cancel</button>' +
+      (params.showRetry !== false ? '<button type="button" data-mf-action="retry" style="padding:8px 12px;border:none;background:#2563eb;color:#fff;border-radius:8px;">Try again</button>' : '') +
+      (isAndroidApp() ? '<button type="button" data-mf-action="settings" style="padding:8px 12px;border:none;background:#7c3aed;color:#fff;border-radius:8px;">Open Settings</button>' : '') +
+      '</div></div>';
+
+    function closeDialog() {
+      overlay.remove();
+    }
+
+    overlay.addEventListener("click", function (event) {
+      if (event.target === overlay) closeDialog();
+    });
+    overlay.querySelector('[data-mf-action="cancel"]').addEventListener("click", closeDialog);
+    const retryBtn = overlay.querySelector('[data-mf-action="retry"]');
+    if (retryBtn) {
+      retryBtn.addEventListener("click", function () {
+        closeDialog();
+        if (typeof params.onRetry === "function") params.onRetry();
+        else request_android_permission(kind);
+      });
+    }
+    const settingsBtn = overlay.querySelector('[data-mf-action="settings"]');
+    if (settingsBtn) {
+      settingsBtn.addEventListener("click", function () {
+        open_app_settings();
+        closeDialog();
+      });
+    }
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function defaultPhotoFilename(ext) {
+    const extension = (ext || "png").replace(/^\./, "");
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    return "photo-" + stamp + "." + extension;
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    const parts = String(dataUrl || "").split(",");
+    if (parts.length < 2) return null;
+    const mimeMatch = parts[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : "image/png";
+    const binary = atob(parts[1]);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
+  function extensionForMime(mime) {
+    if (!mime) return "png";
+    if (mime.indexOf("jpeg") >= 0 || mime.indexOf("jpg") >= 0) return "jpg";
+    if (mime.indexOf("webp") >= 0) return "webp";
+    return "png";
+  }
+
+  function download_blob(blob, filename) {
+    if (!blob) return false;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename || defaultPhotoFilename("png");
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    return true;
+  }
+
+  function download_image(params = {}) {
+    const statusId = params.statusId;
+    let dataUrl = params.dataUrl || "";
+    const key = params.key || "camera";
+
+    if (!dataUrl && params.imageId) {
+      const img = byId(params.imageId);
+      if (img && img.src) dataUrl = img.src;
+    }
+    if (!dataUrl && params.canvasId) {
+      const canvas = byId(params.canvasId);
+      if (canvas) dataUrl = canvas.toDataURL(params.imageType || "image/png");
+    }
+    if (!dataUrl && state.captures[key]) {
+      dataUrl = state.captures[key];
+    }
+
+    if (!dataUrl) {
+      if (statusId) setText(statusId, "No image to download.");
+      return false;
+    }
+
+    const blob = dataUrlToBlob(dataUrl);
+    if (!blob) {
+      if (statusId) setText(statusId, "Could not prepare image download.");
+      return false;
+    }
+
+    const filename = params.filename || defaultPhotoFilename(extensionForMime(blob.type));
+    const ok = download_blob(blob, filename);
+    if (statusId) setText(statusId, ok ? ("Saved " + filename) : "Download failed.");
+    return ok;
+  }
+
+  function download_captured_image(params = {}) {
+    const key = params.key || "camera";
+    return download_image(Object.assign({}, params, {
+      dataUrl: params.dataUrl || state.captures[key]
+    }));
+  }
+
+  function get_camera_facing(params = {}) {
+    const key = params.key || "camera";
+    return state.cameraFacing[key] || params.facingMode || "environment";
+  }
+
   async function start_camera(params = {}) {
     const videoEl = byId(params.videoId || "cameraVideo");
     const statusId = params.statusId || "cameraStatus";
     const key = params.key || "camera";
-    const facingMode = params.facingMode || "environment";
+    const facingMode = params.facingMode || state.cameraFacing[key] || "environment";
     if (!videoEl) return null;
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -30,19 +213,71 @@
       return null;
     }
 
+    const existing = state.streams[key];
+    if (existing) {
+      existing.getTracks().forEach(function (track) { track.stop(); });
+      state.streams[key] = null;
+      videoEl.srcObject = null;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode },
+        video: { facingMode: { ideal: facingMode } },
         audio: false
       });
       state.streams[key] = stream;
+      state.cameraFacing[key] = facingMode;
       videoEl.srcObject = stream;
-      setText(statusId, "Camera started.");
+      const label = facingMode === "user" ? "Front camera" : "Back camera";
+      setText(statusId, label + " started.");
       return stream;
     } catch (error) {
-      setText(statusId, "Camera error: " + error.message);
+      if (facingMode === "user") {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false
+          });
+          state.streams[key] = stream;
+          state.cameraFacing[key] = "environment";
+          videoEl.srcObject = stream;
+          setText(statusId, "Front camera unavailable. Using back camera.");
+          return stream;
+        } catch (_) {}
+      }
+      const denied = error && (error.name === "NotAllowedError" || /permission/i.test(error.message || ""));
+      if (denied) {
+        setText(statusId, "Camera permission denied.");
+        if (params.showDialog !== false) {
+          show_permission_dialog({
+            kind: "camera",
+            message: "Camera access is blocked. Tap Open Settings, enable Camera for this app, then Try again.",
+            onRetry: function () { start_camera(Object.assign({}, params, { showDialog: false })); }
+          });
+        }
+      } else {
+        setText(statusId, "Camera error: " + error.message);
+      }
+      const fallbackId = params.inputId || "cameraInput";
+      const fallback = byId(fallbackId);
+      if (denied && params.useFallback !== false && fallback) fallback.click();
       return null;
     }
+  }
+
+  async function start_front_camera(params = {}) {
+    return start_camera(Object.assign({}, params, { facingMode: "user" }));
+  }
+
+  async function start_back_camera(params = {}) {
+    return start_camera(Object.assign({}, params, { facingMode: "environment" }));
+  }
+
+  async function switch_camera(params = {}) {
+    const key = params.key || "camera";
+    const current = get_camera_facing({ key: key });
+    const next = current === "user" ? "environment" : "user";
+    return start_camera(Object.assign({}, params, { facingMode: next }));
   }
 
   function stop_camera(params = {}) {
@@ -60,6 +295,7 @@
     const canvasEl = byId(params.canvasId || "cameraCanvas");
     const imageEl = byId(params.imageId || "capturedImage");
     const statusId = params.statusId || "cameraStatus";
+    const key = params.key || "camera";
     if (!videoEl || !canvasEl || !imageEl || !videoEl.videoWidth) {
       setText(statusId, "Start camera first.");
       return "";
@@ -71,7 +307,16 @@
     ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
     const dataUrl = canvasEl.toDataURL(params.imageType || "image/png");
     imageEl.src = dataUrl;
+    state.captures[key] = dataUrl;
     setText(statusId, "Image captured.");
+    if (params.download) {
+      download_captured_image({
+        key: key,
+        dataUrl: dataUrl,
+        filename: params.filename,
+        statusId: statusId
+      });
+    }
     return dataUrl;
   }
 
@@ -86,7 +331,17 @@
     const reader = new FileReader();
     reader.onload = function () {
       imageEl.src = reader.result;
+      const key = params.key || "camera";
+      state.captures[key] = reader.result;
       setText(statusId, "Image loaded.");
+      if (params.download) {
+        download_captured_image({
+          key: key,
+          dataUrl: reader.result,
+          filename: params.filename,
+          statusId: statusId
+        });
+      }
     };
     reader.readAsDataURL(inputEl.files[0]);
   }
@@ -111,7 +366,15 @@
       setText(statusId, "Recording...");
       return true;
     } catch (error) {
-      setText(statusId, "Microphone error: " + error.message);
+      const denied = error && (error.name === "NotAllowedError" || /permission/i.test(error.message || ""));
+      setText(statusId, denied ? "Microphone permission denied." : ("Microphone error: " + error.message));
+      if (denied && params.showDialog !== false) {
+        show_permission_dialog({
+          kind: "microphone",
+          message: "Microphone access is blocked. Open Settings, enable Microphone, then Try again.",
+          onRetry: function () { start_recording(Object.assign({}, params, { showDialog: false })); }
+        });
+      }
       return false;
     }
   }
@@ -321,7 +584,13 @@
   global.MobileFeatures = {
     start_camera,
     stop_camera,
+    start_front_camera,
+    start_back_camera,
+    switch_camera,
+    get_camera_facing,
     capture_image,
+    download_image,
+    download_captured_image,
     load_image_from_input,
     start_recording,
     stop_recording,
@@ -337,6 +606,11 @@
     open_app_with_fallback,
     get_manifest_template,
     get_service_worker_template,
-    register_service_worker
+    register_service_worker,
+    is_android_app: isAndroidApp,
+    open_app_settings,
+    request_android_permission,
+    has_android_permission,
+    show_permission_dialog
   };
 })(window);

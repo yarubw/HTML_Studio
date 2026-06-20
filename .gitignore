@@ -4,3 +4,10 @@
 !.dev.vars.example
 .env*
 !.env.example
+
+# Android template build output
+tools/webview-shell/.gradle/
+tools/webview-shell/build/
+tools/webview-shell/app/build/
+tools/webview-shell/local.properties
+
