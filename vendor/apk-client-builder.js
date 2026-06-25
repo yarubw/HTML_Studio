@@ -10,6 +10,12 @@
   var KEYSTORE_PASS = 'yarubhtml';
   var KEYSTORE_ALIAS = 'yarubhtml';
   var APP_NAME_SLOT = 'HTML Studio App';
+  var PACKAGE_SLOT = 'com.yarub.htmlstudio';
+  var PACKAGE_SLOT_SLASH = 'com/yarub/htmlstudio';
+  var PACKAGE_ACTIVITY_SLOT = 'com.yarub.htmlstudio.MainActivity';
+  var PACKAGE_ACTIVITY_SLOT_DEX = 'Lcom/yarub/htmlstudio/MainActivity';
+  var DEFAULT_PACKAGE_NAME = 'com.yarub.test';
+  var DEFAULT_ICON_URL = 'default.jpg';
   var WWW_PREFIX = 'assets/www/';
   var ICON_PATHS = [
     { zipPath: 'res/drawable-nodpi-v4/ic_launcher_custom.png', size: 512 },
@@ -107,7 +113,7 @@
     var slot = APP_NAME_SLOT;
     var maxLen = slot.length;
     var trimmed = String(appName || '').trim().slice(0, maxLen);
-    if (!trimmed) trimmed = 'My App';
+    if (!trimmed) trimmed = 'test';
     while (trimmed.length < maxLen) trimmed += ' ';
     var next = new Uint8Array(arscBytes);
     var needle = new TextEncoder().encode(slot);
@@ -123,6 +129,105 @@
     var replacement = new TextEncoder().encode(trimmed);
     for (var k = 0; k < replacement.length; k++) next[idx + k] = replacement[k];
     return next;
+  }
+
+  function encodeUtf16le(text) {
+    var out = new Uint8Array(text.length * 2);
+    for (var i = 0; i < text.length; i++) {
+      var code = text.charCodeAt(i);
+      out[i * 2] = code & 0xff;
+      out[i * 2 + 1] = (code >> 8) & 0xff;
+    }
+    return out;
+  }
+
+  function replaceAllSameLength(bytes, searchBytes, replaceBytes) {
+    if (searchBytes.length !== replaceBytes.length) {
+      throw new Error('Package patch length mismatch');
+    }
+    var next = bytes instanceof Uint8Array ? new Uint8Array(bytes) : new Uint8Array(bytes);
+    if (!searchBytes.length) return next;
+    outer: for (var i = 0; i <= next.length - searchBytes.length; i++) {
+      for (var j = 0; j < searchBytes.length; j++) {
+        if (next[i + j] !== searchBytes[j]) continue outer;
+      }
+      for (var k = 0; k < replaceBytes.length; k++) next[i + k] = replaceBytes[k];
+      i += searchBytes.length - 1;
+    }
+    return next;
+  }
+
+  function replaceUtf8String(bytes, search, replace) {
+    return replaceAllSameLength(bytes, new TextEncoder().encode(search), new TextEncoder().encode(replace));
+  }
+
+  function replaceUtf16String(bytes, search, replace) {
+    return replaceAllSameLength(bytes, encodeUtf16le(search), encodeUtf16le(replace));
+  }
+
+  function sanitizePackageName(name) {
+    var s = String(name || '').trim().toLowerCase();
+    s = s.replace(/[^a-z0-9._]/g, '');
+    s = s.replace(/\.+/g, '.').replace(/^\.+|\.+$/g, '');
+    if (!s) s = DEFAULT_PACKAGE_NAME;
+    s = s.split('.').filter(Boolean).map(function (seg) {
+      seg = seg.replace(/^[^a-z]+/, '');
+      return seg || 'app';
+    }).join('.');
+    return s || DEFAULT_PACKAGE_NAME;
+  }
+
+  function fitPackageToSlot(name, len) {
+    var fitted = sanitizePackageName(name);
+    if (fitted.length > len) {
+      while (fitted.length > len && fitted.indexOf('.') >= 0) {
+        fitted = fitted.slice(0, fitted.lastIndexOf('.'));
+      }
+      fitted = fitted.slice(0, len).replace(/\.+$/, '');
+    }
+    while (fitted.length < len) {
+      var suffix = '.app';
+      if (fitted.length + suffix.length <= len) fitted += suffix;
+      else fitted += 'a';
+    }
+    if (fitted.length > len) fitted = fitted.slice(0, len);
+    fitted = fitted.replace(/\.+$/, '');
+    while (fitted.length < len) fitted += 'a';
+    return fitted.slice(0, len);
+  }
+
+  function packageNameForApk(name) {
+    return fitPackageToSlot(name, PACKAGE_SLOT.length);
+  }
+
+  function isValidPackageName(name) {
+    var trimmed = String(name || '').trim();
+    if (!trimmed || trimmed.length > 64) return false;
+    return /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/.test(trimmed);
+  }
+
+  function patchPackageInBytes(bytes, packageName) {
+    var fitted = packageNameForApk(packageName);
+    var slash = fitted.replace(/\./g, '/');
+    var activityDot = fitted + '.MainActivity';
+    var activityDex = 'L' + slash + '/MainActivity';
+    var next = replaceUtf16String(bytes, PACKAGE_SLOT, fitted);
+    next = replaceUtf16String(next, PACKAGE_ACTIVITY_SLOT, activityDot);
+    next = replaceUtf8String(next, PACKAGE_SLOT_SLASH, slash);
+    next = replaceUtf8String(next, PACKAGE_ACTIVITY_SLOT_DEX, activityDex);
+    return next;
+  }
+
+  function loadDefaultIconFile() {
+    return fetch(DEFAULT_ICON_URL, { cache: 'force-cache' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Could not load default icon');
+        return res.blob();
+      })
+      .then(function (blob) {
+        var type = blob.type || 'image/jpeg';
+        return new File([blob], 'default.jpg', { type: type });
+      });
   }
 
   function resizeIconFile(file, size) {
@@ -188,19 +293,24 @@
   /**
    * @param {Object} opts
    * @param {string} opts.appName
-   * @param {File} opts.iconFile
+   * @param {string} [opts.packageName]
+   * @param {File} [opts.iconFile]
    * @param {Array<{path:string,data:string|ArrayBuffer|Uint8Array}>} opts.projectFiles
    * @param {function(string):void} [opts.onStatus]
    * @returns {Promise<Blob>}
    */
   async function buildClientApk(opts) {
     var appName = opts && opts.appName;
+    var packageName = (opts && opts.packageName) || DEFAULT_PACKAGE_NAME;
     var iconFile = opts && opts.iconFile;
     var projectFiles = (opts && opts.projectFiles) || [];
     var onStatus = (opts && opts.onStatus) || function () {};
 
     if (typeof JSZip === 'undefined') throw new Error('JSZip is required');
-    if (!iconFile) throw new Error('App icon is required');
+    if (!isValidPackageName(packageName)) {
+      throw new Error('Invalid package name (example: com.yarub.test)');
+    }
+    if (!iconFile) iconFile = await loadDefaultIconFile();
     if (!projectFiles.length) throw new Error('Project files are required');
 
     onStatus('Loading signer…');
@@ -236,7 +346,25 @@
     var arscEntry = zip.file('resources.arsc');
     if (arscEntry) {
       var arscBytes = await arscEntry.async('uint8array');
-      zip.file('resources.arsc', patchAppNameInArsc(arscBytes, appName));
+      arscBytes = patchAppNameInArsc(arscBytes, appName);
+      arscBytes = patchPackageInBytes(arscBytes, packageName);
+      zip.file('resources.arsc', arscBytes);
+    }
+
+    onStatus('Updating package name (' + packageNameForApk(packageName) + ')…');
+    var manifestEntry = zip.file('AndroidManifest.xml');
+    if (manifestEntry) {
+      var manifestBytes = await manifestEntry.async('uint8array');
+      zip.file('AndroidManifest.xml', patchPackageInBytes(manifestBytes, packageName));
+    }
+    var dexNames = Object.keys(zip.files).filter(function (name) {
+      return /^classes\d*\.dex$/i.test(name);
+    });
+    for (var d = 0; d < dexNames.length; d++) {
+      var dexEntry = zip.file(dexNames[d]);
+      if (!dexEntry) continue;
+      var dexBytes = await dexEntry.async('uint8array');
+      zip.file(dexNames[d], patchPackageInBytes(dexBytes, packageName));
     }
 
     stripSignatureEntries(zip);
@@ -287,6 +415,10 @@
   global.YarubApkClient = {
     buildClientApk: buildClientApk,
     ensureApkSigWasm: ensureApkSigWasm,
-    ensureApkClientBuilderLoaded: ensureApkClientBuilderLoaded
+    ensureApkClientBuilderLoaded: ensureApkClientBuilderLoaded,
+    loadDefaultIconFile: loadDefaultIconFile,
+    isValidPackageName: isValidPackageName,
+    packageNameForApk: packageNameForApk,
+    DEFAULT_PACKAGE_NAME: DEFAULT_PACKAGE_NAME
   };
 })(window);

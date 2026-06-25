@@ -1451,6 +1451,7 @@
     /* GitHub uses same top menu style as File / HTML / … */
     #apiBtn          { background: #db2777; }
     #exportApkBtn    { background: #7c3aed; }
+    #exportWebAppBtn { background: #059669; }
 
     #fileSelector {
       min-width: 140px;
@@ -2062,6 +2063,7 @@
     <button type="button" id="mobileFeaturesBtn">Mobile Features</button>
     <button type="button" id="apiBtn">API</button>
     <button type="button" id="exportApkBtn">Export APK</button>
+    <button type="button" id="exportWebAppBtn">Export Web App</button>
 
     <div class="legacy-hidden-tools" aria-hidden="true">
       <select id="menuLayoutSelector" title="Insert site navigation (side or top menu)">
@@ -2118,6 +2120,12 @@
               <div id="inspectorPaneCss" class="inspector-pane">
               <div class="css-group">
                 <div class="css-group-title" id="groupTextTitle">Text</div>
+
+                <div class="field" id="fieldElementText">
+                  <label for="cssElementText" id="labelElementText">Text content</label>
+                  <input type="text" id="cssElementText" placeholder="Element text" autocomplete="off">
+                  <span id="cssElementTextHint" style="display:none;font-size:12px;color:#6b7280;margin-top:4px;"></span>
+                </div>
 
                 <div class="field">
                   <label for="cssColor" id="labelColor">Text Color</label>
@@ -2393,17 +2401,24 @@
       </div>
       <div class="modal-body">
         <p id="apkExportIntro" style="margin:0 0 12px;color:#374151;font-size:13px;">
-          Enter the app name, choose an icon, then build your project into an installable APK — entirely in your browser (no server).
+          Build your project into an installable APK in the browser. Defaults: name <b>test</b>, package <b>com.yarub.test</b>, icon <b>default.jpg</b>.
         </p>
         <div class="github-row" style="margin-bottom:12px;">
           <label for="apkAppNameInput" id="apkAppNameLabel">App name</label>
-          <input id="apkAppNameInput" type="text" maxlength="15" placeholder="My Student App" autocomplete="off">
+          <input id="apkAppNameInput" type="text" maxlength="15" value="test" placeholder="test" autocomplete="off">
+        </div>
+        <div class="github-row" style="margin-bottom:12px;">
+          <label for="apkPackageNameInput" id="apkPackageNameLabel">Package name</label>
+          <input id="apkPackageNameInput" type="text" value="com.yarub.test" placeholder="com.yarub.test" autocomplete="off" spellcheck="false">
+          <span id="apkPackageNameHint" style="display:block;font-size:12px;color:#6b7280;margin-top:6px;">
+            Android app ID (example: com.yarub.test).
+          </span>
         </div>
         <div class="github-row" style="margin-bottom:12px;">
           <label for="apkAppIconInput" id="apkAppIconLabel">App icon</label>
           <input id="apkAppIconInput" type="file" accept="image/png,image/jpeg,image/webp">
           <span id="apkAppIconHint" style="display:block;font-size:12px;color:#6b7280;margin-top:6px;">
-            Square image recommended (PNG, 512×512).
+            Optional — uses default.jpg if not selected. Square image recommended (PNG/JPEG, 512×512).
           </span>
           <img id="apkIconPreview" alt="" width="72" height="72" style="display:none;margin-top:10px;object-fit:cover;border-radius:14px;border:1px solid #e5e7eb;background:#f3f4f6;">
         </div>
@@ -2412,6 +2427,36 @@
       </div>
       <div class="modal-footer">
         <button type="button" id="apkExportStartBtn" style="background:#7c3aed;color:#fff;">Build APK</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="webAppExportModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="webAppExportTitle">Export Web App</span>
+        <button type="button" id="closeWebAppExportBtn">Close</button>
+      </div>
+      <div class="modal-body">
+        <p id="webAppExportIntro" style="margin:0 0 12px;color:#374151;font-size:13px;">
+          Download an installable web app (PWA) zip. Upload the folder to any HTTPS host, then open on a phone and use <b>Add to Home Screen</b>. Defaults: name <b>test</b>, icon <b>default.jpg</b>.
+        </p>
+        <div class="github-row" style="margin-bottom:12px;">
+          <label for="webAppNameInput" id="webAppNameLabel">App name</label>
+          <input id="webAppNameInput" type="text" maxlength="48" value="test" placeholder="test" autocomplete="off">
+        </div>
+        <div class="github-row" style="margin-bottom:12px;">
+          <label for="webAppIconInput" id="webAppIconLabel">App icon</label>
+          <input id="webAppIconInput" type="file" accept="image/png,image/jpeg,image/webp">
+          <span id="webAppIconHint" style="display:block;font-size:12px;color:#6b7280;margin-top:6px;">
+            Optional — uses default.jpg if not selected. Square image recommended (PNG/JPEG, 512×512).
+          </span>
+          <img id="webAppIconPreview" alt="" width="72" height="72" style="display:none;margin-top:10px;object-fit:cover;border-radius:14px;border:1px solid #e5e7eb;background:#f3f4f6;">
+        </div>
+        <p id="webAppExportStatus" style="margin:0;color:#374151;font-size:14px;min-height:1.4em;"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="webAppExportStartBtn" style="background:#059669;color:#fff;">Download Web App</button>
       </div>
     </div>
   </div>
@@ -2790,6 +2835,7 @@
     const clearJsHandlersBtn = document.getElementById('clearJsHandlersBtn');
 
     const cssControls = {
+      elementText: document.getElementById('cssElementText'),
       color: document.getElementById('cssColor'),
       backgroundColor: document.getElementById('cssBackgroundColor'),
       fontSize: document.getElementById('cssFontSize'),
@@ -2805,7 +2851,10 @@
       borderRadius: document.getElementById('cssBorderRadius')
     };
     const groupImageAlign = document.getElementById('groupImageAlign');
+    const fieldElementText = document.getElementById('fieldElementText');
+    const cssElementTextHint = document.getElementById('cssElementTextHint');
     const exportApkBtn = document.getElementById('exportApkBtn');
+    const exportWebAppBtn = document.getElementById('exportWebAppBtn');
 
     let previewFrameRef = document.getElementById('previewFrame');
     let currentSnippet = '';
@@ -4110,6 +4159,35 @@ self.addEventListener('fetch', (event) => {
       return tag;
     }
 
+    const NO_TEXT_EDIT_TAGS = new Set([
+      'img', 'br', 'hr', 'svg', 'video', 'audio', 'iframe', 'canvas', 'source',
+      'link', 'meta', 'script', 'style', 'colgroup', 'col', 'embed', 'object',
+      'param', 'track', 'area', 'base', 'wbr', 'picture', 'map'
+    ]);
+
+    function getElementTextEditMode(el) {
+      if (!el || !el.tagName) return null;
+      const tag = el.tagName.toLowerCase();
+      if (NO_TEXT_EDIT_TAGS.has(tag)) return null;
+      if (tag === 'input') {
+        const type = (el.type || 'text').toLowerCase();
+        if (['text', 'button', 'submit', 'reset', 'search', 'tel', 'email', 'url', 'number'].includes(type)) {
+          return 'value';
+        }
+        return null;
+      }
+      if (tag === 'textarea') return 'value';
+      if (el.children.length > 0) return null;
+      return 'textContent';
+    }
+
+    function getElementEditableText(el) {
+      const mode = getElementTextEditMode(el);
+      if (!mode) return '';
+      if (mode === 'value') return el.value != null ? el.value : (el.getAttribute('value') || '');
+      return el.textContent || '';
+    }
+
     function updateGeneratedCssBox() {
       if (!selectedPreviewElement) {
         generatedCssBox.textContent = isArabic
@@ -4573,12 +4651,42 @@ self.addEventListener('fetch', (event) => {
 
     const apkExportModal = document.getElementById('apkExportModal');
     const apkAppNameInput = document.getElementById('apkAppNameInput');
+    const apkPackageNameInput = document.getElementById('apkPackageNameInput');
     const apkAppIconInput = document.getElementById('apkAppIconInput');
     const apkIconPreview = document.getElementById('apkIconPreview');
     const apkExportStatus = document.getElementById('apkExportStatus');
     const apkDownloadLink = document.getElementById('apkDownloadLink');
     const apkExportStartBtn = document.getElementById('apkExportStartBtn');
+    const APK_DEFAULT_APP_NAME = 'test';
+    const APK_DEFAULT_PACKAGE_NAME = 'com.yarub.test';
     let apkIconPreviewUrl = null;
+    let apkDefaultIconFile = null;
+
+    async function loadApkDefaultIconFile() {
+      if (apkDefaultIconFile) return apkDefaultIconFile;
+      if (typeof YarubApkClient !== 'undefined' && YarubApkClient.loadDefaultIconFile) {
+        apkDefaultIconFile = await YarubApkClient.loadDefaultIconFile();
+        return apkDefaultIconFile;
+      }
+      const res = await fetch('default.jpg', { cache: 'force-cache' });
+      if (!res.ok) throw new Error('Could not load default icon');
+      const blob = await res.blob();
+      apkDefaultIconFile = new File([blob], 'default.jpg', { type: blob.type || 'image/jpeg' });
+      return apkDefaultIconFile;
+    }
+
+    async function getApkIconFile() {
+      const custom = apkAppIconInput && apkAppIconInput.files && apkAppIconInput.files[0];
+      if (custom) return custom;
+      return loadApkDefaultIconFile();
+    }
+
+    async function showApkDefaultIconPreview() {
+      try {
+        const file = await loadApkDefaultIconFile();
+        updateApkIconPreview(file);
+      } catch (_) {}
+    }
 
     function setApkExportStatus(text) {
       if (apkExportStatus) apkExportStatus.textContent = text || '';
@@ -4622,8 +4730,12 @@ self.addEventListener('fetch', (event) => {
     function openApkExportModal() {
       resetApkExportModal();
       if (apkAppNameInput && !apkAppNameInput.value.trim()) {
-        apkAppNameInput.value = isArabic ? 'تطبيقي' : 'My App';
+        apkAppNameInput.value = APK_DEFAULT_APP_NAME;
       }
+      if (apkPackageNameInput && !apkPackageNameInput.value.trim()) {
+        apkPackageNameInput.value = APK_DEFAULT_PACKAGE_NAME;
+      }
+      showApkDefaultIconPreview();
       if (apkExportModal) apkExportModal.classList.add('show');
     }
 
@@ -4682,9 +4794,20 @@ self.addEventListener('fetch', (event) => {
         return;
       }
 
-      const iconFile = apkAppIconInput && apkAppIconInput.files && apkAppIconInput.files[0];
-      if (!iconFile) {
-        alert(isArabic ? 'يرجى اختيار أيقونة التطبيق' : 'Please choose an app icon');
+      const packageName = apkPackageNameInput ? apkPackageNameInput.value.trim() : APK_DEFAULT_PACKAGE_NAME;
+      const packageOk = typeof YarubApkClient !== 'undefined' && YarubApkClient.isValidPackageName
+        ? YarubApkClient.isValidPackageName(packageName)
+        : /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/.test(packageName);
+      if (!packageOk) {
+        alert(isArabic ? 'اسم الحزمة غير صالح (مثال: com.yarub.test)' : 'Invalid package name (example: com.yarub.test)');
+        return;
+      }
+
+      let iconFile;
+      try {
+        iconFile = await getApkIconFile();
+      } catch (err) {
+        alert(isArabic ? 'تعذر تحميل الأيقونة الافتراضية' : 'Could not load default icon');
         return;
       }
       if (!/^image\/(png|jpeg|webp)$/i.test(iconFile.type)) {
@@ -4706,6 +4829,7 @@ self.addEventListener('fetch', (event) => {
         const projectFiles = await collectApkProjectFiles();
         const apkBlob = await YarubApkClient.buildClientApk({
           appName: appName,
+          packageName: packageName,
           iconFile: iconFile,
           projectFiles: projectFiles,
           onStatus: setApkExportStatus
@@ -4722,6 +4846,152 @@ self.addEventListener('fetch', (event) => {
       } catch (err) {
         if (apkExportStartBtn) apkExportStartBtn.disabled = false;
         setApkExportStatus((isArabic ? 'خطأ: ' : 'Error: ') + (err.message || String(err)));
+      }
+    }
+
+    /** Client-side PWA / web app exporter. */
+    let webAppExportLoadPromise = null;
+
+    function ensureWebAppExporterLoaded() {
+      if (typeof YarubWebAppExport !== 'undefined') return Promise.resolve();
+      if (webAppExportLoadPromise) return webAppExportLoadPromise;
+      webAppExportLoadPromise = new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'vendor/webapp-export.js';
+        s.async = true;
+        s.onload = function () {
+          if (typeof YarubWebAppExport !== 'undefined') resolve();
+          else reject(new Error('Web app exporter did not initialize'));
+        };
+        s.onerror = function () { reject(new Error('Web app exporter script failed to load')); };
+        document.head.appendChild(s);
+      });
+      return webAppExportLoadPromise;
+    }
+
+    const webAppExportModal = document.getElementById('webAppExportModal');
+    const webAppNameInput = document.getElementById('webAppNameInput');
+    const webAppIconInput = document.getElementById('webAppIconInput');
+    const webAppIconPreview = document.getElementById('webAppIconPreview');
+    const webAppExportStatus = document.getElementById('webAppExportStatus');
+    const webAppExportStartBtn = document.getElementById('webAppExportStartBtn');
+    const WEBAPP_DEFAULT_APP_NAME = 'test';
+    let webAppIconPreviewUrl = null;
+    let webAppDefaultIconFile = null;
+
+    async function loadWebAppDefaultIconFile() {
+      if (webAppDefaultIconFile) return webAppDefaultIconFile;
+      if (typeof YarubWebAppExport !== 'undefined' && YarubWebAppExport.loadDefaultIconFile) {
+        webAppDefaultIconFile = await YarubWebAppExport.loadDefaultIconFile();
+        return webAppDefaultIconFile;
+      }
+      const res = await fetch('default.jpg', { cache: 'force-cache' });
+      if (!res.ok) throw new Error('Could not load default icon');
+      const blob = await res.blob();
+      webAppDefaultIconFile = new File([blob], 'default.jpg', { type: blob.type || 'image/jpeg' });
+      return webAppDefaultIconFile;
+    }
+
+    async function getWebAppIconFile() {
+      const custom = webAppIconInput && webAppIconInput.files && webAppIconInput.files[0];
+      if (custom) return custom;
+      return loadWebAppDefaultIconFile();
+    }
+
+    function setWebAppExportStatus(text) {
+      if (webAppExportStatus) webAppExportStatus.textContent = text || '';
+    }
+
+    function resetWebAppExportModal() {
+      setWebAppExportStatus('');
+      if (webAppExportStartBtn) webAppExportStartBtn.disabled = false;
+      if (webAppIconPreviewUrl) {
+        URL.revokeObjectURL(webAppIconPreviewUrl);
+        webAppIconPreviewUrl = null;
+      }
+      if (webAppIconInput) webAppIconInput.value = '';
+      if (webAppIconPreview) {
+        webAppIconPreview.style.display = 'none';
+        webAppIconPreview.removeAttribute('src');
+      }
+    }
+
+    function updateWebAppIconPreview(file) {
+      if (webAppIconPreviewUrl) {
+        URL.revokeObjectURL(webAppIconPreviewUrl);
+        webAppIconPreviewUrl = null;
+      }
+      if (!file || !webAppIconPreview) {
+        if (webAppIconPreview) {
+          webAppIconPreview.style.display = 'none';
+          webAppIconPreview.removeAttribute('src');
+        }
+        return;
+      }
+      webAppIconPreviewUrl = URL.createObjectURL(file);
+      webAppIconPreview.src = webAppIconPreviewUrl;
+      webAppIconPreview.style.display = 'block';
+    }
+
+    async function showWebAppDefaultIconPreview() {
+      try {
+        const file = await loadWebAppDefaultIconFile();
+        updateWebAppIconPreview(file);
+      } catch (_) {}
+    }
+
+    function openWebAppExportModal() {
+      resetWebAppExportModal();
+      if (webAppNameInput && !webAppNameInput.value.trim()) {
+        webAppNameInput.value = WEBAPP_DEFAULT_APP_NAME;
+      }
+      showWebAppDefaultIconPreview();
+      if (webAppExportModal) webAppExportModal.classList.add('show');
+    }
+
+    async function submitWebAppExport() {
+      const appName = webAppNameInput ? webAppNameInput.value.trim() : '';
+      if (!appName) {
+        alert(isArabic ? 'يرجى إدخال اسم التطبيق' : 'Please enter an app name');
+        return;
+      }
+
+      let iconFile;
+      try {
+        iconFile = await getWebAppIconFile();
+      } catch (err) {
+        alert(isArabic ? 'تعذر تحميل الأيقونة الافتراضية' : 'Could not load default icon');
+        return;
+      }
+      if (!/^image\/(png|jpeg|webp)$/i.test(iconFile.type)) {
+        alert(isArabic ? 'الأيقونة يجب أن تكون PNG أو JPEG أو WebP' : 'Icon must be PNG, JPEG, or WebP');
+        return;
+      }
+      if (iconFile.size > 2 * 1024 * 1024) {
+        alert(isArabic ? 'حجم الأيقونة أكبر من 2 ميجابايت' : 'Icon is larger than 2MB');
+        return;
+      }
+
+      if (webAppExportStartBtn) webAppExportStartBtn.disabled = true;
+      setWebAppExportStatus(isArabic ? 'جاري تجهيز المشروع…' : 'Preparing project…');
+
+      try {
+        await ensureJSZipLoaded();
+        await ensureWebAppExporterLoaded();
+        const projectFiles = await collectApkProjectFiles();
+        const zipBlob = await YarubWebAppExport.buildWebAppZip({
+          appName: appName,
+          iconFile: iconFile,
+          projectFiles: projectFiles,
+          onStatus: setWebAppExportStatus
+        });
+        const safeName = (appName || 'webapp').replace(/[^\w.-]+/g, '_') + '-webapp.zip';
+        downloadBlobFile(zipBlob, safeName);
+        setWebAppExportStatus(isArabic ? 'اكتمل التصدير! تم تحميل الملف.' : 'Export complete! Zip downloaded.');
+        if (webAppExportStartBtn) webAppExportStartBtn.disabled = false;
+      } catch (err) {
+        if (webAppExportStartBtn) webAppExportStartBtn.disabled = false;
+        setWebAppExportStatus((isArabic ? 'خطأ: ' : 'Error: ') + (err.message || String(err)));
       }
     }
 
@@ -4749,6 +5019,11 @@ self.addEventListener('fetch', (event) => {
       if (!selectedPreviewElement) {
         selectedElementInfo.textContent = isArabic ? 'لا يوجد عنصر محدد' : 'No element selected';
         stylePanel.classList.remove('show');
+        if (cssControls.elementText) {
+          cssControls.elementText.value = '';
+          cssControls.elementText.disabled = true;
+        }
+        if (cssElementTextHint) cssElementTextHint.style.display = 'none';
         updateGeneratedCssBox();
         updateGeneratedJsBox();
         return;
@@ -4779,6 +5054,38 @@ self.addEventListener('fetch', (event) => {
       }
       if (cssControls.imageAlign) {
         cssControls.imageAlign.value = isImg ? detectImageAlignFromElement(selectedPreviewElement) : '';
+      }
+
+      const textMode = getElementTextEditMode(selectedPreviewElement);
+      if (fieldElementText && cssControls.elementText) {
+        if (textMode) {
+          fieldElementText.classList.remove('hidden-group');
+          cssControls.elementText.disabled = false;
+          cssControls.elementText.value = getElementEditableText(selectedPreviewElement);
+          if (cssElementTextHint) cssElementTextHint.style.display = 'none';
+        } else {
+          const tag = selectedPreviewElement.tagName.toLowerCase();
+          const hasChildren = selectedPreviewElement.children.length > 0;
+          fieldElementText.classList.remove('hidden-group');
+          cssControls.elementText.disabled = true;
+          cssControls.elementText.value = '';
+          if (cssElementTextHint) {
+            cssElementTextHint.style.display = 'block';
+            if (hasChildren) {
+              cssElementTextHint.textContent = isArabic
+                ? 'العنصر يحتوي على عناصر فرعية — عدّل النص في محرر HTML.'
+                : 'Element has child tags — edit text in the HTML editor.';
+            } else if (tag === 'input') {
+              cssElementTextHint.textContent = isArabic
+                ? 'نوع هذا الحقل لا يدعم تعديل النص هنا.'
+                : 'This input type cannot be edited here.';
+            } else {
+              cssElementTextHint.textContent = isArabic
+                ? 'لا يمكن تعديل نص هذا العنصر هنا.'
+                : 'Text cannot be edited for this element.';
+            }
+          }
+        }
       }
 
       updateGeneratedCssBox();
@@ -5529,6 +5836,61 @@ ${usageHint}`;
       updateCursorStatus();
     }
 
+    function updateEditorTextFromPreviewSelection(text, mode) {
+      if (!selectedPreviewElement) return;
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(editor.value, 'text/html');
+      const sourceEl = doc.querySelector('[data-editor-selected="1"]');
+      if (!sourceEl) return;
+
+      if (mode === 'value') {
+        sourceEl.setAttribute('value', text);
+        if (sourceEl.tagName.toLowerCase() === 'textarea') {
+          sourceEl.textContent = text;
+        }
+      } else {
+        sourceEl.textContent = text;
+      }
+
+      const markedPreviewEl = previewFrameRef.contentDocument.querySelector('[data-editor-selected="1"]');
+      if (markedPreviewEl) {
+        if (mode === 'value') {
+          markedPreviewEl.value = text;
+          markedPreviewEl.setAttribute('value', text);
+          if (markedPreviewEl.tagName.toLowerCase() === 'textarea') {
+            markedPreviewEl.textContent = text;
+          }
+        } else {
+          markedPreviewEl.textContent = text;
+        }
+      }
+
+      editor.value = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+      lastSavedValue = editor.value;
+      syncHighlight();
+      updateCursorStatus();
+    }
+
+    function applyTextToSelectedElement(text) {
+      if (!selectedPreviewElement) return;
+      const mode = getElementTextEditMode(selectedPreviewElement);
+      if (!mode) return;
+
+      if (mode === 'value') {
+        selectedPreviewElement.value = text;
+        selectedPreviewElement.setAttribute('value', text);
+        if (selectedPreviewElement.tagName.toLowerCase() === 'textarea') {
+          selectedPreviewElement.textContent = text;
+        }
+      } else {
+        selectedPreviewElement.textContent = text;
+      }
+
+      updateEditorTextFromPreviewSelection(text, mode);
+      highlightSelectedElement(selectedPreviewElement);
+    }
+
     function applyCssToSelectedElement(prop, value) {
       if (!selectedPreviewElement) return;
 
@@ -5546,6 +5908,12 @@ ${usageHint}`;
     }
 
     function bindCssControls() {
+      if (cssControls.elementText) {
+        cssControls.elementText.addEventListener('input', function () {
+          applyTextToSelectedElement(this.value);
+        });
+      }
+
       cssControls.color.addEventListener('input', function() {
         applyCssToSelectedElement('color', this.value);
       });
@@ -5885,34 +6253,69 @@ ${usageHint}`;
       if (tabCss) tabCss.textContent = isArabic ? 'CSS' : 'CSS';
       if (tabJs) tabJs.textContent = isArabic ? 'JavaScript' : 'JavaScript';
       document.getElementById('groupTextTitle').textContent = isArabic ? 'النص' : 'Text';
+      const labelElementText = document.getElementById('labelElementText');
+      if (labelElementText) labelElementText.textContent = isArabic ? 'محتوى النص' : 'Text content';
+      if (cssControls.elementText) {
+        cssControls.elementText.placeholder = isArabic ? 'نص العنصر' : 'Element text';
+      }
       const groupImgTitle = document.getElementById('groupImageAlignTitle');
       if (groupImgTitle) groupImgTitle.textContent = isArabic ? 'موضع الصورة' : 'Image position';
       const labelImgAlign = document.getElementById('labelImageAlign');
       if (labelImgAlign) labelImgAlign.textContent = isArabic ? 'محاذاة الصورة' : 'Align image';
       document.getElementById('groupBoxTitle').textContent = isArabic ? 'الصندوق' : 'Box';
       if (exportApkBtn) exportApkBtn.textContent = isArabic ? 'تصدير APK' : 'Export APK';
+      if (exportWebAppBtn) exportWebAppBtn.textContent = isArabic ? 'تصدير ويب' : 'Export Web App';
       const apkExportTitle = document.getElementById('apkExportTitle');
       if (apkExportTitle) apkExportTitle.textContent = isArabic ? 'تصدير APK' : 'Export APK';
       const apkExportIntro = document.getElementById('apkExportIntro');
       if (apkExportIntro) {
         apkExportIntro.textContent = isArabic
-          ? 'أدخل اسم التطبيق واختر أيقونة، ثم يُبنى ملف APK بالكامل في المتصفح دون خادم.'
-          : 'Enter the app name, choose an icon, then build your project into an installable APK — entirely in your browser (no server).';
+          ? 'ابنِ ملف APK في المتصفح. الافتراضي: الاسم test، الحزمة com.yarub.test، الأيقونة default.jpg.'
+          : 'Build your project into an installable APK in the browser. Defaults: name test, package com.yarub.test, icon default.jpg.';
       }
       const apkAppNameLabel = document.getElementById('apkAppNameLabel');
       if (apkAppNameLabel) apkAppNameLabel.textContent = isArabic ? 'اسم التطبيق' : 'App name';
+      const apkPackageNameLabel = document.getElementById('apkPackageNameLabel');
+      if (apkPackageNameLabel) apkPackageNameLabel.textContent = isArabic ? 'اسم الحزمة' : 'Package name';
+      const apkPackageNameHint = document.getElementById('apkPackageNameHint');
+      if (apkPackageNameHint) {
+        apkPackageNameHint.textContent = isArabic
+          ? 'معرّف التطبيق على أندرويد (مثال: com.yarub.test).'
+          : 'Android app ID (example: com.yarub.test).';
+      }
       const apkAppIconLabel = document.getElementById('apkAppIconLabel');
       if (apkAppIconLabel) apkAppIconLabel.textContent = isArabic ? 'أيقونة التطبيق' : 'App icon';
       const apkAppIconHint = document.getElementById('apkAppIconHint');
       if (apkAppIconHint) {
         apkAppIconHint.textContent = isArabic
-          ? 'يُفضّل صورة مربعة (PNG، 512×512).'
-          : 'Square image recommended (PNG, 512×512).';
+          ? 'اختياري — يُستخدم default.jpg إذا لم تُختر أيقونة. يُفضّل صورة مربعة (PNG/JPEG، 512×512).'
+          : 'Optional — uses default.jpg if not selected. Square image recommended (PNG/JPEG, 512×512).';
       }
       const closeApkExportBtn = document.getElementById('closeApkExportBtn');
       if (closeApkExportBtn) closeApkExportBtn.textContent = isArabic ? 'إغلاق' : 'Close';
       if (apkExportStartBtn) apkExportStartBtn.textContent = isArabic ? 'بناء APK' : 'Build APK';
       if (apkDownloadLink) apkDownloadLink.textContent = isArabic ? 'تحميل APK' : 'Download APK';
+      const webAppExportTitle = document.getElementById('webAppExportTitle');
+      if (webAppExportTitle) webAppExportTitle.textContent = isArabic ? 'تصدير تطبيق ويب' : 'Export Web App';
+      const webAppExportIntro = document.getElementById('webAppExportIntro');
+      if (webAppExportIntro) {
+        webAppExportIntro.textContent = isArabic
+          ? 'حمّل ملف zip لتطبيق ويب (PWA). ارفعه على استضافة HTTPS، ثم على الجوال اختر «إضافة إلى الشاشة الرئيسية». الافتراضي: الاسم test، الأيقونة default.jpg.'
+          : 'Download an installable web app (PWA) zip. Upload to any HTTPS host, then on a phone use Add to Home Screen. Defaults: name test, icon default.jpg.';
+      }
+      const webAppNameLabel = document.getElementById('webAppNameLabel');
+      if (webAppNameLabel) webAppNameLabel.textContent = isArabic ? 'اسم التطبيق' : 'App name';
+      const webAppIconLabel = document.getElementById('webAppIconLabel');
+      if (webAppIconLabel) webAppIconLabel.textContent = isArabic ? 'أيقونة التطبيق' : 'App icon';
+      const webAppIconHint = document.getElementById('webAppIconHint');
+      if (webAppIconHint) {
+        webAppIconHint.textContent = isArabic
+          ? 'اختياري — يُستخدم default.jpg إذا لم تُختر أيقونة. يُفضّل صورة مربعة (PNG/JPEG، 512×512).'
+          : 'Optional — uses default.jpg if not selected. Square image recommended (PNG/JPEG, 512×512).';
+      }
+      const closeWebAppExportBtn = document.getElementById('closeWebAppExportBtn');
+      if (closeWebAppExportBtn) closeWebAppExportBtn.textContent = isArabic ? 'إغلاق' : 'Close';
+      if (webAppExportStartBtn) webAppExportStartBtn.textContent = isArabic ? 'تحميل تطبيق الويب' : 'Download Web App';
       document.getElementById('groupSpacingTitle').textContent = isArabic ? 'المسافات' : 'Spacing';
       document.getElementById('groupBorderTitle').textContent = isArabic ? 'الحدود' : 'Border';
 
@@ -6236,6 +6639,11 @@ ${usageHint}`;
         openApkExportModal();
       });
     }
+    if (exportWebAppBtn) {
+      exportWebAppBtn.addEventListener('click', function () {
+        openWebAppExportModal();
+      });
+    }
     if (document.getElementById('closeApkExportBtn')) {
       document.getElementById('closeApkExportBtn').addEventListener('click', function () {
         if (apkExportModal) apkExportModal.classList.remove('show');
@@ -6258,6 +6666,30 @@ ${usageHint}`;
     if (apkAppIconInput) {
       apkAppIconInput.addEventListener('change', function () {
         updateApkIconPreview(apkAppIconInput.files && apkAppIconInput.files[0]);
+      });
+    }
+    if (document.getElementById('closeWebAppExportBtn')) {
+      document.getElementById('closeWebAppExportBtn').addEventListener('click', function () {
+        if (webAppExportModal) webAppExportModal.classList.remove('show');
+        resetWebAppExportModal();
+      });
+    }
+    if (webAppExportModal) {
+      webAppExportModal.addEventListener('click', function (e) {
+        if (e.target === webAppExportModal) {
+          webAppExportModal.classList.remove('show');
+          resetWebAppExportModal();
+        }
+      });
+    }
+    if (webAppExportStartBtn) {
+      webAppExportStartBtn.addEventListener('click', function () {
+        submitWebAppExport();
+      });
+    }
+    if (webAppIconInput) {
+      webAppIconInput.addEventListener('change', function () {
+        updateWebAppIconPreview(webAppIconInput.files && webAppIconInput.files[0]);
       });
     }
     document.getElementById('menuFileSaveJson').addEventListener('click', function () {

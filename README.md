@@ -6,12 +6,12 @@ Main editor: **`index.html`** (single-page app).
 
 ## Export APK (client-side — no server)
 
-Open **`index.html`** in a browser (or serve the folder with any static host), click **Export APK**, enter an app name, pick an icon, then **Build APK**.
+Open **`index.html`** in a browser (or serve the folder with any static host), click **Export APK**, then **Build APK**. Defaults: app name **test**, package **com.yarub.test**, icon **default.jpg**.
 
 Everything runs in the browser:
 
 1. Project files are injected into a WebView shell template (`vendor/webview-shell-base.apk`).
-2. Launcher icons and app label are updated.
+2. Launcher icons, app label, and package name are updated.
 3. The APK is signed locally with **apksig WASM** (`vendor/apksig.wasm`).
 
 Required static assets (ship with the repo):
@@ -23,13 +23,35 @@ Required static assets (ship with the repo):
 | `vendor/apksig.wasm` + `vendor/wasm_exec.js` | Browser APK signing ([apksig-go](https://github.com/agusibrahim/apksig-go)) |
 | `vendor/yarub-debug.p12` | Debug signing keystore (password: `yarubhtml`) |
 | `vendor/jszip.min.js` | ZIP read/write |
+| `default.jpg` | Default launcher icon for Export APK |
 
 **Notes**
 
 - Serves a **debug-signed** APK for sideloading/testing, not Play Store release.
 - Launcher name is limited to **15 characters** (template slot in `resources.arsc`).
+- Package names shorter than 20 characters are auto-padded in the APK (e.g. `com.yarub.test` → `com.yarub.test.appaa`).
 - First build may take ~10–30 seconds while WASM loads.
 - Serve over **http(s)** (not `file://`) so WASM and template fetches work reliably.
+
+## Export Web App (PWA — client-side)
+
+Click **Export Web App** in the toolbar, set the app name and icon (defaults: **test**, **default.jpg**), then **Download Web App**.
+
+The zip includes:
+
+1. Your project files (with PWA tags injected into `index.html`)
+2. `manifest.json` (app name + icons)
+3. `icons/icon-192.png` and `icons/icon-512.png`
+4. `service-worker.js` (basic offline cache)
+
+Deploy by uploading the unzipped folder to any **HTTPS** web host, then on iPhone/Android use **Add to Home Screen**.
+
+| File | Purpose |
+|------|---------|
+| `vendor/webapp-export.js` | PWA zip builder |
+| `default.jpg` | Default launcher icon |
+
+---
 
 ### Rebuild the WebView shell template (optional)
 
